@@ -25,115 +25,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _showRewardsSheet(String type) {
-    final List<Map<String, String>> rewards = type == "Daily"
-        ? [
-            {"earning": "75k", "reward": "2.25k"},
-            {"earning": "1L", "reward": "3k"},
-            {"earning": "1.5L", "reward": "3.5k"},
-            {"earning": "2L", "reward": "6k"},
-            {"earning": "2.5L", "reward": "8.5k"},
-            {"earning": "3L", "reward": "12k"},
-            {"earning": "3.5L", "reward": "15k"},
-            {"earning": "5L", "reward": "20k"},
-          ]
-        : [
-            {"earning": "1st", "reward": "5L"},
-            {"earning": "2nd", "reward": "2.5L"},
-            {"earning": "3rd", "reward": "1.25L"},
-            {"earning": "4th", "reward": "75k"},
-            {"earning": "5th", "reward": "50k"},
-            {"earning": "6th", "reward": "35k"},
-            {"earning": "7th", "reward": "25k"},
-            {"earning": "8th", "reward": "20k"},
-          ];
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) {
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Column(
-                children: [
-                  Text(
-                    type,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFFF55A5),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset('assets/coins.png', width: 18, height: 18),
-                      const SizedBox(width: 4),
-                      const Text(
-                        "0",
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text(
-                    "Earning",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    "Rewards",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: rewards.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final item = rewards[index];
-                  return Row(
-                    children: [
-                      Expanded(child: Text(item['earning']!)),
-                      const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-                      Expanded(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Image.asset(
-                              'assets/coins.png',
-                              width: 16,
-                              height: 16,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(item['reward']!),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  // NOTE: Rewards-related code removed.
 
   Widget _buildGradientText(String text) {
     return Stack(
@@ -167,36 +59,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildGradientButton(String label, VoidCallback onTap) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Ink(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFF55A5), Color(0xFF9A00F0)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            alignment: Alignment.center,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -316,7 +178,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
 
-                  // First Card with better spacing
+                  // First Card with stats
                   Card(
                     margin: const EdgeInsets.symmetric(
                       horizontal: 14,
@@ -326,10 +188,10 @@ class _HomePageState extends State<HomePage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
+                    child: const Padding(
+                      padding: EdgeInsets.all(16),
                       child: Column(
-                        children: const [
+                        children: [
                           _StatRow("Total Online Time", "0 Min", bold: true),
                           SizedBox(height: 10),
                           _StatRow("Missed Calls", "0"),
@@ -348,47 +210,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
 
-                  // Second Card with bold title
-                  Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    elevation: 6,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Center(
-                            child: Text(
-                              "Rewards",
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-                          Row(
-                            children: [
-                              _buildGradientButton(
-                                "Daily",
-                                () => _showRewardsSheet("Daily"),
-                              ),
-                              const SizedBox(width: 16),
-                              _buildGradientButton(
-                                "Weekly",
-                                () => _showRewardsSheet("Weekly"),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
+                  // Rewards card REMOVED
                   const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),

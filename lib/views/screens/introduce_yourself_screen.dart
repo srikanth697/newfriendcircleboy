@@ -14,7 +14,7 @@ class IntroduceYourselfScreen extends StatefulWidget {
 }
 
 class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
-  final List<File> _photos = [];
+  File? _photo; // ✅ single image
   File? _videoFile;
   VideoPlayerController? _videoController;
 
@@ -35,13 +35,9 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
   ];
 
   Future<void> _pickImage() async {
-    if (_photos.length >= 3) return;
-
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked != null) {
-      setState(() {
-        _photos.add(File(picked.path));
-      });
+      setState(() => _photo = File(picked.path));
     }
   }
 
@@ -109,11 +105,26 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
         child: Column(
           children: [
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: List.generate(3, _buildPhotoBox),
+
+            // ✅ Single photo slot (tap to add/replace)
+            GestureDetector(
+              onTap: _pickImage,
+              child: _photo == null
+                  ? const DottedBorderBox(label: "Upload photo")
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.file(
+                        _photo!,
+                        width: 120,
+                        height: 120,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
             ),
+
             const SizedBox(height: 20),
+
+            // Video
             GestureDetector(
               onTap: _recordVideo,
               child: DottedBorderBox(
@@ -140,6 +151,7 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
               "Record your 10 sec live video",
               style: TextStyle(color: Colors.grey),
             ),
+
             const SizedBox(height: 24),
             Align(
               alignment: Alignment.centerLeft,
@@ -147,6 +159,7 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
             ),
             const SizedBox(height: 6),
             _buildRoundedTextField(_nameController, "", hintInside: true),
+
             const SizedBox(height: 16),
             Align(
               alignment: Alignment.centerLeft,
@@ -159,6 +172,7 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
               keyboardType: TextInputType.number,
               hintInside: true,
             ),
+
             const SizedBox(height: 20),
             Align(
               alignment: Alignment.centerLeft,
@@ -173,6 +187,7 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
                 _genderOption("Female", Icons.person_outline),
               ],
             ),
+
             const SizedBox(height: 20),
             Align(
               alignment: Alignment.centerLeft,
@@ -185,6 +200,7 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
               maxLines: 4,
               hintInside: true,
             ),
+
             const SizedBox(height: 20),
             Align(
               alignment: Alignment.centerLeft,
@@ -215,12 +231,13 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
                 );
               }).toList(),
             ),
+
             const SizedBox(height: 30),
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: GradientButton(
                 text: "Approve",
-                onPressed: _navigateToStatus, // ✅ Updated navigation target
+                onPressed: _navigateToStatus,
               ),
             ),
             const SizedBox(height: 40),
@@ -228,25 +245,6 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildPhotoBox(int index) {
-    if (index < _photos.length) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Image.file(
-          _photos[index],
-          width: 90,
-          height: 90,
-          fit: BoxFit.cover,
-        ),
-      );
-    } else {
-      return GestureDetector(
-        onTap: _pickImage,
-        child: const DottedBorderBox(label: "Upload"),
-      );
-    }
   }
 
   Widget _buildRoundedTextField(
@@ -331,6 +329,7 @@ class DottedBorderBox extends StatelessWidget {
   final bool isCircle;
 
   const DottedBorderBox({
+    super.key,
     required this.label,
     this.child,
     this.isCircle = false,
@@ -339,8 +338,8 @@ class DottedBorderBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: isCircle ? 120 : 90,
-      height: isCircle ? 120 : 90,
+      width: isCircle ? 120 : 120, // slightly larger for single slot
+      height: isCircle ? 120 : 120,
       decoration: BoxDecoration(
         border: Border.all(
           color: const Color(0xFFE91EC7),

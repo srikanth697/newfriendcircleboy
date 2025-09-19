@@ -82,13 +82,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         break;
                     }
                   },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(value: 0, child: Text("Block Number")),
-                    const PopupMenuItem(
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(value: 0, child: Text("Block Number")),
+                    PopupMenuItem(
                       value: 1,
                       child: Text("Turn On Disappearing"),
                     ),
-                    const PopupMenuItem(value: 2, child: Text("Delete Chat")),
+                    PopupMenuItem(value: 2, child: Text("Delete Chat")),
                   ],
                 ),
               ],
@@ -140,25 +140,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             ),
             child: Column(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: const TextField(
-                          decoration: InputDecoration(
-                            hintText: "Message",
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                Row(children: [const Expanded(child: _MessageField())]),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -168,6 +150,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     _buildIconButton(Icons.image),
                     const SizedBox(width: 16),
                     _buildIconButton(Icons.mic),
+                    const SizedBox(width: 16),
+                    _buildIconButton(Icons.card_giftcard), // 🎁 Gift icon added
                   ],
                 ),
               ],
@@ -311,5 +295,26 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   Widget _buildIconButton(IconData icon) {
     return Icon(icon, color: Colors.grey.shade700);
+  }
+}
+
+class _MessageField extends StatelessWidget {
+  const _MessageField();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: const TextField(
+        decoration: InputDecoration(
+          hintText: "Message",
+          border: InputBorder.none,
+        ),
+      ),
+    );
   }
 }

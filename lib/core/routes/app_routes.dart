@@ -21,7 +21,7 @@ import 'package:girl_flow/views/screens/call_rate_screen.dart';
 import 'package:girl_flow/views/screens/withdraws_screen.dart';
 import 'package:girl_flow/views/screens/followers_screen.dart';
 import 'package:girl_flow/views/screens/earnings_screen.dart';
-import 'package:girl_flow/views/screens/streamers_screen.dart';
+import 'package:girl_flow/views/screens/create_agency_screen.dart';
 import 'package:girl_flow/views/screens/settings_screen.dart';
 import 'package:girl_flow/views/screens/BlocklistScreen.dart';
 import 'package:girl_flow/views/screens/kyc_details_screen.dart';
@@ -53,7 +53,7 @@ class AppRoutes {
   static const String withdraws = '/Withdraws';
   static const String followers = '/Followers';
   static const String earnings = '/Earnings';
-  static const String streamers = '/Streamers';
+  static const String createagency = '/CreateAgency';
   static const String supportservice = '/Supportservice';
   static const String settings = '/Settings';
   static const String blocklistscreen = '/Blocklistscreen';
@@ -123,8 +123,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const MyFollowersScreen());
       case earnings:
         return MaterialPageRoute(builder: (_) => const MyEarningsScreen());
-      case streamers:
-        return MaterialPageRoute(builder: (_) => const MyStreamersScreen());
+      case createagency:
+        return MaterialPageRoute(builder: (_) => const CreateAgencyScreen());
       case supportservice:
         return MaterialPageRoute(builder: (_) => const SupportServiceScreen());
       case AppRoutes settings:

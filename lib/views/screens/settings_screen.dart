@@ -12,8 +12,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool isOnline = false;
   bool beautyFilters = false;
-  bool noCallsDuringLivestream = false;
-  bool hideMyAge = false;
+  bool hideMyAge = false; // removed noCallsDuringLivestream
 
   void logout() {
     Navigator.pushAndRemoveUntil(
@@ -119,16 +118,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: TextStyle(fontSize: fontSize),
             ),
           ),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: noCallsDuringLivestream,
-            onChanged: (value) =>
-                setState(() => noCallsDuringLivestream = value!),
-            title: const Text(
-              "No calls during livestream",
-              style: TextStyle(fontSize: fontSize),
-            ),
-          ),
+          // Removed: "No calls during livestream"
           CheckboxListTile(
             contentPadding: EdgeInsets.zero,
             value: hideMyAge,

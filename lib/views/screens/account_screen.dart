@@ -7,7 +7,7 @@ import '../screens/call_rate_screen.dart';
 import '../screens/withdraws_screen.dart';
 import '../screens/followers_screen.dart';
 import '../screens/earnings_screen.dart';
-import '../screens/streamers_screen.dart';
+import 'create_agency_screen.dart';
 import '../screens/support_service_screen.dart';
 import '../screens/settings_screen.dart';
 
@@ -49,8 +49,8 @@ class _AccountScreenState extends State<AccountScreen> {
     },
     {
       'iconPath': 'assets/profile.png',
-      'label': 'My Streamers',
-      'screen': MyStreamersScreen(),
+      'label': 'Create Agency',
+      'screen': CreateAgencyScreen(),
     },
     {
       'iconPath': 'assets/supportservice.png',
