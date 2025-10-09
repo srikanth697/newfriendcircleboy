@@ -1,4 +1,3 @@
-// lib/views/screens/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/routes/app_routes.dart';
@@ -47,6 +46,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final ok = await api.requestLoginOtp(email: email);
     if (!mounted) return;
+
+    debugPrint(
+      "➡️ Navigating to OTP screen with requestId captured internally.",
+    );
 
     if (ok) {
       Navigator.pushNamed(
@@ -169,6 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           onPressed: () {
                             if (!api.isLoading) _sendOtp();
                           },
+                          buttonText: '',
                         ),
                         const SizedBox(height: 12),
                         Center(

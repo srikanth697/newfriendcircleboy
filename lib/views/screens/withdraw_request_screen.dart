@@ -104,6 +104,7 @@ class WithdrawRequestScreen extends StatelessWidget {
                   );
                 }
               },
+              buttonText: '',
             ),
           ],
         ),

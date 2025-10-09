@@ -225,6 +225,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             : GradientButton(
                                 text: "Verify OTP",
                                 onPressed: _submit,
+                                buttonText: '',
                               ),
                         const SizedBox(height: 12),
                         Center(

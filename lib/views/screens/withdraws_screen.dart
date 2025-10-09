@@ -76,6 +76,7 @@ class MyWithdrawsScreen extends StatelessWidget {
                         );
                       },
                       text: "Submit KYC",
+                      buttonText: '',
                     ),
                   ],
                 ),

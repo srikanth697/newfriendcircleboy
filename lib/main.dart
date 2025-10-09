@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Girl Flow',
         debugShowCheckedModeBanner: false,
-        initialRoute: AppRoutes.home,
+        initialRoute: AppRoutes.introduceYourself,
         onGenerateRoute: AppRoutes.generateRoute,
       ),
     );

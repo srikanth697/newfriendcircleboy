@@ -1,11 +1,10 @@
-// lib/views/screens/login_verification.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/routes/app_routes.dart';
 import '../../utils/colors.dart';
 import '../../widgets/gradient_button.dart';
 import '../../controllers/api_controller.dart';
-import '../../widgets/otp_input_fields.dart'; // <-- your OTP input widget
+import '../../widgets/otp_input_fields.dart';
 
 class LoginVerificationScreen extends StatefulWidget {
   const LoginVerificationScreen({super.key});
@@ -18,7 +17,7 @@ class LoginVerificationScreen extends StatefulWidget {
 class _LoginVerificationScreenState extends State<LoginVerificationScreen> {
   String? _email;
   String? _mobile;
-  String? _source;
+  String? _source; // "login" or "signup"
   String _otp = "";
 
   @override
@@ -26,28 +25,42 @@ class _LoginVerificationScreenState extends State<LoginVerificationScreen> {
     super.didChangeDependencies();
     final args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    _email = args?['email'] as String?;
-    _mobile = args?['mobile'] as String?;
-    _source = args?['source'] as String?;
+    _email = (args?['email'] as String?)?.trim();
+    _mobile = (args?['mobile'] as String?)?.trim();
+    _source = (args?['source'] as String?)?.trim().toLowerCase() ?? "login";
+
+    // Ensure controller knows the identity/flow even if user navigated here directly.
+    final api = Provider.of<ApiController>(context, listen: false);
+    api.setPendingIdentity(email: _email, mobile: _mobile, source: _source);
   }
 
   Future<void> _verifyOtp() async {
     final api = Provider.of<ApiController>(context, listen: false);
-    if (_otp.isEmpty) {
+    final otp = _otp.trim();
+    if (otp.isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Please enter the OTP')));
       return;
     }
 
-    final ok = await api.verifyOtp(otp: _otp);
+    final ok = await api.verifyOtp(
+      otp: otp,
+      email: _email,
+      mobile: _mobile,
+      source: _source, // ensure "login" for login flow
+    );
     if (!mounted) return;
 
     if (ok) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('✅ OTP verified!')));
-      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.home, (_) => false);
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.introduceYourself,
+        (_) => false,
+      );
     } else {
       final msg = api.error ?? 'OTP verification failed';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
@@ -55,18 +68,53 @@ class _LoginVerificationScreenState extends State<LoginVerificationScreen> {
   }
 
   Future<void> _resendOtp() async {
-    if (_email == null || _email!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email not available to resend OTP.')),
-      );
+    final api = Provider.of<ApiController>(context, listen: false);
+
+    if ((_source ?? "").toLowerCase() == "login") {
+      final ok = await api.requestLoginOtp(email: _email, mobile: _mobile);
+      if (!mounted) return;
+      if (ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('OTP resent. Please check your inbox.')),
+        );
+      } else {
+        final msg = api.error ?? 'Failed to resend OTP';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
+      }
       return;
     }
-    final api = Provider.of<ApiController>(context, listen: false);
-    final ok = await api.requestLoginOtp(email: _email!);
+
+    if ((_source ?? "").toLowerCase() == "signup") {
+      if ((_email == null || _email!.isEmpty) &&
+          (_mobile == null || _mobile!.isEmpty)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Missing email/mobile to resend OTP.')),
+        );
+        return;
+      }
+      final ok = await api.signup(mobile: _mobile ?? "", email: _email ?? "");
+      if (!mounted) return;
+      if (ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('OTP resent to your contact.')),
+        );
+      } else {
+        final msg = api.error ?? 'Failed to resend OTP';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
+      }
+      return;
+    }
+
+    // Fallback if source unknown
+    final ok = await api.requestLoginOtp(email: _email, mobile: _mobile);
     if (!mounted) return;
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('OTP resent to your email.')),
+        const SnackBar(content: Text('OTP resent. Please check your inbox.')),
       );
     } else {
       final msg = api.error ?? 'Failed to resend OTP';
@@ -98,7 +146,6 @@ class _LoginVerificationScreenState extends State<LoginVerificationScreen> {
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-
                       colors: [AppColors.gradientTop, AppColors.gradientBottom],
                     ),
                   ),
@@ -114,7 +161,6 @@ class _LoginVerificationScreenState extends State<LoginVerificationScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Back arrow
                             GestureDetector(
                               onTap: () => Navigator.pop(context),
                               child: const Icon(
@@ -122,7 +168,6 @@ class _LoginVerificationScreenState extends State<LoginVerificationScreen> {
                                 color: AppColors.white,
                               ),
                             ),
-                            // Shield icon
                             Image.asset(
                               'assets/sheild.png',
                               height: 24,
@@ -188,13 +233,14 @@ class _LoginVerificationScreenState extends State<LoginVerificationScreen> {
 
                       const SizedBox(height: 30),
 
-                      // Verify button
+                      // ✅ Verify button
                       GradientButton(
-                        text: api.isLoading ? 'Verifying...' : 'Verify OTP',
-                        onPressed: () {
-                          if (!api.isLoading) _verifyOtp();
-                        },
+                        buttonText: api.isLoading
+                            ? 'Verifying...'
+                            : 'Verify OTP',
+                        onPressed: api.isLoading ? null : _verifyOtp,
                       ),
+
                       const SizedBox(height: 12),
 
                       // Resend option

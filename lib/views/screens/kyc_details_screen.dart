@@ -173,6 +173,7 @@ class _KYCDetailsScreenState extends State<KYCDetailsScreen> {
                 MaterialPageRoute(builder: (_) => const UpdateKycScreen()),
               );
             },
+            buttonText: '',
           ),
         ],
       ),
@@ -194,6 +195,7 @@ class _KYCDetailsScreenState extends State<KYCDetailsScreen> {
                 MaterialPageRoute(builder: (_) => const UpdateKycScreen()),
               );
             },
+            buttonText: '',
           ),
         ],
       ),

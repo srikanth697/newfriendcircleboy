@@ -88,6 +88,7 @@ class UpdateKycScreen extends StatelessWidget {
                       ),
                     );
                   },
+                  buttonText: '',
                 ),
               ),
             ),
