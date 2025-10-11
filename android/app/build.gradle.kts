@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.girl_flow"
+    namespace = "com.example.Boy_flow"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"  // Ensure this matches the NDK version required
 
@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.girl_flow"
+        applicationId = "com.example.Boy_flow"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

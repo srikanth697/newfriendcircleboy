@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:girl_flow/models/profiledetails.dart';
+import 'package:Boy_flow/models/profiledetails.dart';
 import '../api_service/api_service.dart';
 import '../api_service/api_endpoint.dart';
 import '../models/profiledetails.dart';

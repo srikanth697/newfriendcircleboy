@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:girl_flow/utils/colors.dart';
+import 'package:Boy_flow/utils/colors.dart';
 import '../../core/routes/app_routes.dart';
 import '../../widgets/bottom_nav.dart';
 

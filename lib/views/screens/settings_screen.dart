@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:girl_flow/views/screens/BlockListScreen.dart';
-import 'package:girl_flow/views/screens/login_screen.dart'; // Ensure this exists
+import 'package:Boy_flow/views/screens/BlockListScreen.dart';
+import 'package:Boy_flow/views/screens/login_screen.dart'; // Ensure this exists
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});

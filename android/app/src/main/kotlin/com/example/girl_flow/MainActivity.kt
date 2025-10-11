@@ -1,4 +1,4 @@
-package com.example.girl_flow
+package com.example.Boy_flow
 
 import io.flutter.embedding.android.FlutterActivity
 

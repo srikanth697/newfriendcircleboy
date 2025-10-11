@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.girl_flow">
+    package="com.example.Boy_flow">
 
     <!-- Permissions for camera, microphone, storage access -->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -20,7 +20,7 @@
     </queries>
 
     <application
-        android:label="girl_flow"
+        android:label="Boy_flow"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
