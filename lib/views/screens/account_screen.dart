@@ -1,9 +1,9 @@
 import 'package:Boy_flow/views/screens/introduce_yourself_screen.dart';
+import 'package:Boy_flow/views/screens/profile_gallery_screen.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/bottom_nav.dart';
 
 // Screens
-import '../screens/profile_gallery_screen.dart';
 import '../screens/call_rate_screen.dart';
 import '../screens/withdraws_screen.dart';
 import '../screens/followers_screen.dart';

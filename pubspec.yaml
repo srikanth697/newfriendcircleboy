@@ -33,6 +33,8 @@ flutter:
   assets:
     - assets/profile_account.png
     - assets/male_avatar.png
+    - assets/img_1.png
+    - assets/vector.png
     - assets/female_avatar.png
     - assets/girls.png
     - assets/girl2.png
