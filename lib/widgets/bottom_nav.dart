@@ -36,7 +36,11 @@ class CustomBottomNav extends StatelessWidget {
 
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => destination),
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => destination,
+        transitionDuration: const Duration(milliseconds: 0),
+        reverseTransitionDuration: const Duration(milliseconds: 0),
+      ),
     );
   }
 
