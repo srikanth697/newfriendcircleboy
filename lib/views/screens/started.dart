@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/routes/app_routes.dart';
 import '../../utils/colors.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class Started extends StatelessWidget {
+  const Started({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +47,7 @@ class HomeScreen extends StatelessWidget {
                 // 🚀 Get Started Button
                 GestureDetector(
                   onTap: () {
+                    print('🏠 Home Screen: Navigating to onboarding');
                     Navigator.pushNamed(context, AppRoutes.onboarding);
                   },
                   child: Container(

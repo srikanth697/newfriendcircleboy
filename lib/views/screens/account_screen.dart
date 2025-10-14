@@ -74,9 +74,28 @@ class _AccountScreenState extends State<AccountScreen> {
         preferredSize: const Size.fromHeight(60),
         child: AppBar(
           automaticallyImplyLeading: false,
-          title: const Text(
-            "Account",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          title: Row(
+            children: [
+              const Text(
+                "Account",
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              Spacer(),
+               Row(
+                children: [
+                  Image.asset("assets/coins.png", width: 22, height: 22),
+                  const SizedBox(width: 4),
+                  const Text(
+                    "1000",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           flexibleSpace: Container(
             decoration: const BoxDecoration(

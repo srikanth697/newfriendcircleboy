@@ -13,7 +13,7 @@ class _ProfileGalleryScreenState extends State<ProfileGalleryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F5FF), // light soft background
+      backgroundColor: const Color(0xFFF9F5FF),
       appBar: AppBar(
         title: const Text("My Profile", style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
@@ -28,24 +28,6 @@ class _ProfileGalleryScreenState extends State<ProfileGalleryScreen> {
             ),
           ),
         ),
-        actions: [
-          Row(
-            children: [
-              Text(
-                isOnline ? "Online" : "Offline",
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(width: 8),
-              Switch(
-                value: isOnline,
-                onChanged: (val) => setState(() => isOnline = val),
-                activeColor: Colors.green,
-                inactiveTrackColor: Colors.grey.shade400,
-              ),
-              const SizedBox(width: 12),
-            ],
-          ),
-        ],
       ),
       body: const SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -73,120 +55,233 @@ class _ProfileTabEditableState extends State<ProfileTabEditable> {
     "Travel": ["Mountains"],
   };
 
-  // small helper to create gradient text used for values
-  Widget _gradientText(String text, {double fontSize = 14, FontWeight fw = FontWeight.bold}) {
-    return ShaderMask(
-      blendMode: BlendMode.srcIn,
-      shaderCallback: (Rect bounds) {
-        return const LinearGradient(
-          colors: [Color(0xFFFF00CC), Color(0xFF9A00F0)],
-        ).createShader(bounds);
-      },
-      child: Text(
-        text,
-        style: TextStyle(fontWeight: fw, fontSize: fontSize),
+  bool isFollowing = false;
+  bool isSayHiSelected = false;
+  bool isCallSelected = false;
+
+  Widget _gradientButton(
+    String text,
+    IconData icon, {
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final gradientColors = [const Color(0xFFFF00CC), const Color(0xFF9A00F0)];
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        height: 42,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          gradient: isSelected ? LinearGradient(colors: gradientColors) : null,
+          color: isSelected ? null : Colors.white,
+          border: Border.all(color: const Color(0xFFFF00CC), width: 1.5),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.purple.withOpacity(0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : [],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : const Color(0xFFFF00CC),
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              text,
+              style: TextStyle(
+                color: isSelected ? Colors.white : const Color(0xFFFF00CC),
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // Profile header card widget
   Widget _profileHeaderCard() {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white, // card uses white background for clear separation
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          // Avatar (placeholder initial)
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFF00CC), Color(0xFF9A00F0)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: const Center(
-              child: Text(
-                "J",
-                style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-
-          const SizedBox(width: 14),
-
-          // Name + basic details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Name (gradient)
-                _gradientText("Jennie", fontSize: 18, fw: FontWeight.w700),
-                const SizedBox(height: 6),
-
-                // Gender row
-                Row(
-                  children: [
-                    const Icon(Icons.person_outline, size: 16, color: Colors.black54),
-                    const SizedBox(width: 6),
-                    const Text("Gender: ", style: TextStyle(color: Colors.black54)),
-                    _gradientText("Female", fontSize: 14, fw: FontWeight.w600),
-                  ],
-                ),
-
-                const SizedBox(height: 6),
-
-                // DOB row
-                Row(
-                  children: [
-                    const Icon(Icons.cake_outlined, size: 16, color: Colors.black54),
-                    const SizedBox(width: 6),
-                    const Text("DOB: ", style: TextStyle(color: Colors.black54)),
-                    _gradientText("19th July 2025", fontSize: 14, fw: FontWeight.w600),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Optional edit button (commented out)
-          // IconButton(onPressed: () {}, icon: Icon(Icons.edit, color: Colors.grey[600])),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRowLabelValue(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 120, // keeps labels aligned
-            child: Row(
-              children: [
-                Text(label, style: const TextStyle(color: Colors.black87)),
-                const Text(" : "),
-              ],
+          // Avatar + overlapping online badge
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const CircleAvatar(
+                radius: 40,
+                backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=5'),
+              ),
+
+              // Positioned online container (overlapping bottom of avatar)
+              Positioned(
+                bottom: -25,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          "Online",
+                          style: TextStyle(
+                            color: Colors.green[800],
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(width: 20),
+
+          // Right side info: name, age/followers, follow button
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Name with gradient
+                  ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [Color(0xFFFF55A5), Color(0xFF9A00F0)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ).createShader(bounds),
+                    blendMode: BlendMode.srcIn,
+                    child: const Text(
+                      "John Borino",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Age & Followers row (left)
+                  const Row(
+                    children: [
+                      Text(
+                        "Age: ",
+                        style: TextStyle(color: Colors.black87, fontSize: 12),
+                      ),
+                      Text(
+                        "22 years",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                          fontSize: 12,
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        "257 Followers",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Follow button (right next to age row area)
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        isFollowing = !isFollowing;
+                      });
+                    },
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF55A5), Color(0xFF9A00F0)],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.purple.withOpacity(0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        isFollowing ? "Following" : "Follow",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          Expanded(child: _gradientText(value)),
         ],
       ),
     );
@@ -197,16 +292,10 @@ class _ProfileTabEditableState extends State<ProfileTabEditable> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Profile header card (replaces inline Nick Name, Gender, DOB)
         _profileHeaderCard(),
+        const SizedBox(height: 24),
 
-        // If you still want the individual label/value rows below the header, uncomment:
-        // _buildRowLabelValue("Nick Name", "Jennie"),
-        // _buildRowLabelValue("Gender", "Female"),
-        // _buildRowLabelValue("Date of Birth", "19th July 2025"),
-        // const SizedBox(height: 12),
-
-        // Profile detail sections (left-aligned, minimal)
+        // Profile detail sections
         ...profileDetails.entries.map((entry) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 18),
@@ -240,6 +329,40 @@ class _ProfileTabEditableState extends State<ProfileTabEditable> {
             ),
           );
         }).toList(),
+          Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 140,
+              child: _gradientButton(
+                "Say Hi",
+                Icons.chat_bubble_outline,
+                isSelected: isSayHiSelected,
+                onTap: () {
+                  setState(() {
+                    isSayHiSelected = !isSayHiSelected;
+                    isCallSelected = false;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(width: 16),
+            SizedBox(
+              width: 140,
+              child: _gradientButton(
+                "Call",
+                Icons.phone,
+                isSelected: isCallSelected,
+                onTap: () {
+                  setState(() {
+                    isCallSelected = !isCallSelected;
+                    isSayHiSelected = false;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }

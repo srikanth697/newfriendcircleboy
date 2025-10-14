@@ -110,6 +110,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 height: 50,
                 child: ElevatedButton(
                   onPressed: () {
+                    print('📱 Onboarding Screen: Navigating to login');
                     Navigator.pushNamed(context, AppRoutes.login);
                   },
                   style: ElevatedButton.styleFrom(
@@ -148,6 +149,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 height: 50,
                 child: OutlinedButton(
                   onPressed: () {
+                    print('📱 Onboarding Screen: Navigating to signup');
                     Navigator.pushNamed(context, AppRoutes.signup);
                   },
                   style: OutlinedButton.styleFrom(

@@ -4,7 +4,7 @@ import 'package:Boy_flow/views/screens/loginVerification.dart';
 
 // Screens
 import 'package:Boy_flow/views/screens/login_screen.dart';
-import 'package:Boy_flow/views/screens/home_screen.dart';
+import 'package:Boy_flow/views/screens/started.dart';
 import 'package:Boy_flow/views/screens/onboardingscreen.dart';
 // OTP screen
 import 'package:Boy_flow/views/screens/verificationfail.dart';
@@ -70,12 +70,18 @@ class AppRoutes {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     final args = settings.arguments;
 
+    // Debug: Print route information
+    print('🔍 Navigating to: ${settings.name}');
+    if (args != null) {
+      print('📦 Arguments: $args');
+    }
+
     switch (settings.name) {
       case login:
         return MaterialPageRoute(builder: (_) => const LoginScreen());
 
       case home:
-        return MaterialPageRoute(builder: (_) => const HomeScreen());
+        return MaterialPageRoute(builder: (_) => const mainhome());
 
       case onboarding:
         return MaterialPageRoute(builder: (_) => const OnboardingScreen());
@@ -96,7 +102,7 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const SignupScreen());
 
       case homepage:
-        return MaterialPageRoute(builder: (_) => const HomeScreen());
+        return MaterialPageRoute(builder: (_) => const mainhome());
 
       case chatScreen:
         return MaterialPageRoute(builder: (_) => const ChatScreen());

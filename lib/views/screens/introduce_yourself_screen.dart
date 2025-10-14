@@ -4,13 +4,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
+// import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../widgets/gradient_button.dart';
 import '../../views/screens/registration_status.dart';
-import '../../controllers/api_controller.dart'; // <- make sure the path is correct in your project
-import '../../api_service/api_endpoint.dart'; // only used for constants in comments
+// import '../../controllers/api_controller.dart'; // <- make sure the path is correct in your project
+// import '../../api_service/api_endpoint.dart'; // only used for constants in comments
 
 /// Introduce Yourself Screen
 ///
@@ -40,7 +40,6 @@ class IntroduceYourselfScreen extends StatefulWidget {
 
 class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
   File? _photo; // selected image file (local)
-  File? _videoFile; // selected/recorded video (local)
   VideoPlayerController? _videoController;
 
   final _formKey = GlobalKey<FormState>();
@@ -51,36 +50,6 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
 
   String _gender = 'Female'; // default to match sample payload
 
-  /// Display labels for interests & a mapping to backend IDs.
-  /// Replace with your real lists you fetch from backend, if available.
-  final List<String> _allInterestLabels = const [
-    'Listening Music',
-    'Watching Movies',
-    'Cooking',
-    'Reading',
-    'Gaming',
-    'Traveling',
-  ];
-
-  /// Map label -> backend id (example shows 2 actual IDs from your sample)
-  final Map<String, String> _interestLabelToId = const {
-    'Listening Music': '68d4f9dfdd3c0ef9b8ebbf19',
-    'Watching Movies': '68d4fac1dd3c0ef9b8ebbf20',
-    // Add/replace the rest with your actual IDs from backend
-    'Cooking': '68d4fac1dd3c0ef9b8ebbf21',
-    'Reading': '68d4fac1dd3c0ef9b8ebbf22',
-    'Gaming': '68d4fac1dd3c0ef9b8ebbf23',
-    'Traveling': '68d4fac1dd3c0ef9b8ebbf24',
-  };
-
-  /// Languages (chips) with id mapping
-  final List<String> _allLanguageLabels = const ['English', 'Hindi'];
-
-
-
-  final Set<String> _selectedInterestLabels = <String>{};
-  final Set<String> _selectedLanguageLabels = <String>{};
-
   @override
   void initState() {
     super.initState();
@@ -89,10 +58,6 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
     _ageController.text = '30';
     _bioController.text = 'This is my bio';
     _gender = 'Female';
-
-    // Preselect example interests and languages (matching your sample IDs)
-    _selectedInterestLabels.addAll(['Listening Music', 'Watching Movies']);
-   
   }
 
   @override
@@ -111,49 +76,66 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
     }
   }
 
-
-
   Future<void> _onApprovePressed() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final api = context.read<ApiController>();
-
-    // Map selections to backend IDs
-    final interestIds = _selectedInterestLabels
-        .map((label) => _interestLabelToId[label])
-        .whereType<String>()
-        .toList();
- // TODO: replace with uploaded URL
-    final String? photoUrl = _photo?.path; 
-
-    final int age = int.parse(_ageController.text.trim());
-
-    final ok = await api.updateProfileDetails(
-      name: _nameController.text.trim(),
-      age: age,
-      gender: _gender.toLowerCase(),
-      bio: _bioController.text.trim(),
-      interestIds: interestIds,
-      photoUrl: photoUrl,
-    );
+    // Mock implementation for screen-only development
+    await Future.delayed(const Duration(seconds: 1));
 
     if (!mounted) return;
 
-    if (ok) {
-      // Navigate to status screen on success
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const RegistrationStatusScreen()),
-      );
-    } else {
-      final err = api.error ?? 'Profile update failed';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
-    }
+    // Mock success response
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('✅ Profile updated successfully!')),
+    );
+
+    // Navigate to status screen on success
+    print('👤 Profile Setup: Navigating to registration status');
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const RegistrationStatusScreen()),
+    );
+
+    // Original API implementation (commented out)
+    // final api = context.read<ApiController>();
+
+    // // Map selections to backend IDs
+    // final interestIds = _selectedInterestLabels
+    //     .map((label) => _interestLabelToId[label])
+    //     .whereType<String>()
+    //     .toList();
+    // // TODO: replace with uploaded URL
+    // final String? photoUrl = _photo?.path;
+
+    // final int age = int.parse(_ageController.text.trim());
+
+    // final ok = await api.updateProfileDetails(
+    //   name: _nameController.text.trim(),
+    //   age: age,
+    //   gender: _gender.toLowerCase(),
+    //   bio: _bioController.text.trim(),
+    //   interestIds: interestIds,
+    //   photoUrl: photoUrl,
+    // );
+
+    // if (!mounted) return;
+
+    // if (ok) {
+    //   // Navigate to status screen on success
+    //   Navigator.pushReplacement(
+    //     context,
+    //     MaterialPageRoute(builder: (_) => const RegistrationStatusScreen()),
+    //   );
+    // } else {
+    //   final err = api.error ?? 'Profile update failed';
+    //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+    // }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = context.watch<ApiController>().isLoading;
+    // Mock loading state for screen-only development
+    bool isLoading = false;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -327,14 +309,8 @@ TextStyle _labelStyle() {
 
 class _DottedBorderBox extends StatelessWidget {
   final String label;
-  final Widget? child;
-  final bool isCircle;
 
-  const _DottedBorderBox({
-    required this.label,
-    this.child,
-    this.isCircle = false,
-  });
+  const _DottedBorderBox({required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -347,28 +323,22 @@ class _DottedBorderBox extends StatelessWidget {
           width: 1,
           style: BorderStyle.solid,
         ),
-        borderRadius: isCircle ? null : BorderRadius.circular(10),
-        shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: BorderRadius.circular(10),
         color: Colors.transparent,
       ),
       child: Center(
-        child:
-            child ??
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.add_a_photo, color: Color(0xFFE91EC7)),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Color(0xFFE91EC7),
-                    fontSize: 12,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.add_a_photo, color: Color(0xFFE91EC7)),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(color: Color(0xFFE91EC7), fontSize: 12),
+              textAlign: TextAlign.center,
             ),
+          ],
+        ),
       ),
     );
   }

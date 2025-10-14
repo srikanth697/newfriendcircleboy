@@ -71,29 +71,23 @@ class _ChatScreenState extends State<ChatScreen> {
       backgroundColor: Colors.white,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60),
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFFF00CC), Color(0xFF9A00F0)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+        child: AppBar(
+          automaticallyImplyLeading: false,
+          title: Row(
+            children: [
+              const Text(
+                "Chats",
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+             
+            ],
           ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  const Text(
-                    "Chats",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  
-                ],
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFFF00CC), Color(0xFF9A00F0)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
           ),
