@@ -1,4 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../../api_service/api_endpoint.dart';
 
 class BlockListScreen1 extends StatefulWidget {
   const BlockListScreen1({super.key});
@@ -9,24 +14,109 @@ class BlockListScreen1 extends StatefulWidget {
 
 class _BlockListScreenState extends State<BlockListScreen1> {
   bool isOnline = true;
+  final String _femaleUserIdForBlockList = '68d79d0a13c8b10d9837a04b';
 
-  // Dummy data for blocked users (since API removed)
-  final List<Map<String, String>> blockedUsers = [
-    {'id': '101', 'name': 'John Doe', 'img': ''},
-    {'id': '102', 'name': 'Jane Smith', 'img': ''},
-    {'id': '103', 'name': 'Michael Johnson', 'img': ''},
-  ];
+  List<Map<String, String>> blockedUsers = [];
 
-  Future<void> _unblockUser(String id) async {
-    if (id.isEmpty) return;
+  @override
+  void initState() {
+    super.initState();
+    _fetchBlockedUsers();
+  }
 
-    setState(() {
-      blockedUsers.removeWhere((user) => user['id'] == id);
-    });
+  Future<void> _fetchBlockedUsers() async {
+    final uri = Uri.parse(
+      "${ApiEndPoints.baseUrls}${ApiEndPoints.maleBlockList}",
+    );
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('User unblocked')));
+    try {
+      final resp = await http.post(
+        uri,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "femaleUserId": _femaleUserIdForBlockList,
+        }),
+      );
+
+      dynamic body;
+      try {
+        body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
+      } catch (_) {
+        body = {"raw": resp.body};
+      }
+
+      if (!mounted) return;
+
+      if (body is Map && body["success"] == true && body["data"] is List) {
+        final List list = body["data"] as List;
+
+        setState(() {
+          blockedUsers = list.map<Map<String, String>>((e) {
+            if (e is Map) {
+              final id = (e["_id"] ?? e["id"] ?? e["femaleUserId"] ?? "").toString();
+              final name = (e["name"] ?? e["firstName"] ?? e["username"] ?? "User").toString();
+              final img = (e["img"] ?? e["image"] ?? e["avatarUrl"] ?? "").toString();
+              return {"id": id, "name": name, "img": img};
+            }
+            return {"id": "", "name": "User", "img": ""};
+          }).toList();
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+    }
+  }
+
+  Future<void> _unblockUser(String femaleUserId) async {
+    if (femaleUserId.isEmpty) return;
+
+    final uri = Uri.parse(
+      "${ApiEndPoints.baseUrls}${ApiEndPoints.maleUnblock}",
+    );
+
+    try {
+      final resp = await http.post(
+        uri,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "femaleUserId": femaleUserId,
+        }),
+      );
+
+      dynamic body;
+      try {
+        body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
+      } catch (_) {
+        body = {"raw": resp.body};
+      }
+
+      if (!mounted) return;
+
+      final success = body is Map && body["success"] == true;
+      final message = (body is Map ? body["message"] : null) ??
+          (success
+              ? "User unblocked successfully. You can now follow them again if desired."
+              : "Failed to unblock user");
+
+      if (success) {
+        setState(() {
+          blockedUsers.removeWhere((user) => user['id'] == femaleUserId);
+        });
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? "✅ $message" : "❌ $message"),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Error unblocking user: ${e.toString()}'),
+        ),
+      );
+    }
   }
 
   @override
