@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../../api_service/api_endpoint.dart';
 
 class ProfileGalleryScreen extends StatefulWidget {
   const ProfileGalleryScreen({super.key});
@@ -64,20 +67,103 @@ class ProfileTabEditable extends StatefulWidget {
 
 class _ProfileTabEditableState extends State<ProfileTabEditable> {
   final Map<String, List<String>> profileDetails = {
-    "My Languages": ["Telugu"],
-    "My Interests": ["Family and parenting", "Society and politics"],
-    "Hobbies": ["Cooking", "Writing"],
-    // "Sports": ["Cricket"],
-    // "Film": ["No Films"],
-    // "Music": ["2020s"],
-    "Travel": ["Mountains"],
+    "My Languages": [],
+    "My Interests": [],
+    "Hobbies": [],
+    "Travel": [],
   };
+
+  String? _firstName;
+  String? _lastName;
+  int? _age;
+  String? _bio;
+  String? _gender;
+  String? _height;
+  String? _profileImageUrl;
+  bool _loadingProfile = false;
 
   bool isFollowing = false;
   bool isSayHiSelected = false;
   bool isCallSelected = false;
 
   final Map<String, bool> _isPressed = {'sayhi': false, 'call': false};
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMaleUserMe();
+  }
+
+  Future<void> _fetchMaleUserMe() async {
+    setState(() {
+      _loadingProfile = true;
+    });
+
+    try {
+      final url = Uri.parse(
+        "${ApiEndPoints.baseUrls}${ApiEndPoints.maleMe}",
+      );
+
+      final resp = await http.get(url);
+
+      dynamic body;
+      try {
+        body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
+      } catch (_) {
+        body = {"raw": resp.body};
+      }
+
+      if (!mounted) return;
+
+      if (body is Map && body["success"] == true && body["data"] is Map) {
+        final data = body["data"] as Map<String, dynamic>;
+
+        final dobStr = data["dateOfBirth"]?.toString();
+        int? age;
+        if (dobStr != null) {
+          final dob = DateTime.tryParse(dobStr);
+          if (dob != null) {
+            final now = DateTime.now();
+            age = now.year - dob.year -
+                ((now.month < dob.month ||
+                        (now.month == dob.month && now.day < dob.day))
+                    ? 1
+                    : 0);
+          }
+        }
+
+        final langs = data["languages"];
+        final ints = data["interests"];
+
+        setState(() {
+          _firstName = data["firstName"]?.toString();
+          _lastName = data["lastName"]?.toString();
+          _bio = data["bio"]?.toString();
+          _gender = data["gender"]?.toString();
+          _height = data["height"]?.toString();
+          _age = age;
+
+          final images = data["images"];
+          if (images is List && images.isNotEmpty) {
+            _profileImageUrl = images.first.toString();
+          }
+
+          profileDetails["My Languages"] =
+              (langs is List) ? langs.map((e) => e.toString()).toList() : [];
+          profileDetails["My Interests"] =
+              (ints is List) ? ints.map((e) => e.toString()).toList() : [];
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingProfile = false;
+        });
+      }
+    }
+  }
 
   Widget _gradientButton(
     String id,
@@ -165,9 +251,11 @@ class _ProfileTabEditableState extends State<ProfileTabEditable> {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 40,
-                backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=5'),
+                backgroundImage: _profileImageUrl != null
+                    ? NetworkImage(_profileImageUrl!)
+                    : const NetworkImage('https://i.pravatar.cc/150?img=5'),
               ),
               Positioned(
                 bottom: -25,
@@ -220,17 +308,18 @@ class _ProfileTabEditableState extends State<ProfileTabEditable> {
                       colors: [Color(0xFFFF55A5), Color(0xFF9A00F0)],
                     ).createShader(bounds),
                     blendMode: BlendMode.srcIn,
-                    child: const Text(
-                      "John Borino",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
+                    child: Text(
+                      _firstName != null
+                          ? "${_firstName!} ${_lastName ?? ''}".trim()
+                          : "Shophie92",
+                      style: const TextStyle(
                         fontSize: 18,
-                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Row(
+                  Row(
                     children: [
                       Text("Age: ", style: TextStyle(color: Colors.black87, fontSize: 12)),
                       Text("22 years",

@@ -1,15 +1,18 @@
 // ignore_for_file: sort_child_properties_last
 
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:Boy_flow/views/screens/account_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 // import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../widgets/gradient_button.dart';
 import '../../views/screens/registration_status.dart';
+import '../../api_service/api_endpoint.dart';
 // import '../../controllers/api_controller.dart'; // <- make sure the path is correct in your project
 // import '../../api_service/api_endpoint.dart'; // only used for constants in comments
 
@@ -43,6 +46,8 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
   File? _photo; // selected image file (local)
   VideoPlayerController? _videoController;
 
+  String? _uploadedPhotoUrl;
+
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
@@ -50,6 +55,11 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
   final _bioController = TextEditingController();
 
   String _gender = 'Female'; // default to match sample payload
+
+  // Interests fetched from /male-user/interests
+  List<String> _interestIds = [];
+  Map<String, String> _interestIdToTitle = {};
+  final Set<String> _selectedInterestIds = {};
 
   @override
   void initState() {
@@ -59,6 +69,8 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
     _ageController.text = '30';
     _bioController.text = 'This is my bio';
     _gender = 'Female';
+
+    _fetchMaleInterests();
   }
 
   @override
@@ -74,63 +86,164 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked != null) {
       setState(() => _photo = File(picked.path));
+      await _uploadProfileImage(_photo!);
+    }
+  }
+
+  Future<void> _fetchMaleInterests() async {
+    try {
+      final url = Uri.parse(
+        "${ApiEndPoints.baseUrls}${ApiEndPoints.maleInterests}",
+      );
+
+      final resp = await http.get(url);
+
+      dynamic body;
+      try {
+        body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
+      } catch (_) {
+        body = {"raw": resp.body};
+      }
+
+      if (!mounted) return;
+
+      if (body is Map && body["success"] == true && body["data"] is List) {
+        final list = body["data"] as List;
+        setState(() {
+          _interestIds = [];
+          _interestIdToTitle.clear();
+
+          for (final e in list) {
+            if (e is Map && e["_id"] != null) {
+              final id = e["_id"].toString();
+              final title = (e["title"] ?? e["name"] ?? id).toString();
+              _interestIds.add(id);
+              _interestIdToTitle[id] = title;
+            }
+          }
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+    }
+  }
+
+  Future<void> _uploadProfileImage(File imageFile) async {
+    final uri = Uri.parse(
+      "${ApiEndPoints.baseUrls}${ApiEndPoints.uploadImageMale}",
+    );
+
+    try {
+      final request = http.MultipartRequest('POST', uri);
+      request.files.add(
+        await http.MultipartFile.fromPath('images', imageFile.path),
+      );
+
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+
+      dynamic body;
+      try {
+        body = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+      } catch (_) {
+        body = {"raw": response.body};
+      }
+
+      if (!mounted) return;
+
+      if (body is Map && body["success"] == true && body["urls"] is List) {
+        final urls = (body["urls"] as List).map((e) => e.toString()).toList();
+        if (urls.isNotEmpty) {
+          setState(() {
+            _uploadedPhotoUrl = urls.first;
+          });
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Image uploaded successfully')), 
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('❌ Failed to upload image')), 
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ Error while uploading image')), 
+      );
     }
   }
 
   Future<void> _onApprovePressed() async {
     if (!_formKey.currentState!.validate()) return;
-
-    // Mock implementation for screen-only development
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (!mounted) return;
-
-    // Mock success response
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('✅ Profile updated successfully!')),
+    final uri = Uri.parse(
+      "${ApiEndPoints.baseUrls}${ApiEndPoints.maleProfileDetails}",
     );
 
-    // Navigate to status screen on success
-    print('👤 Profile Setup: Navigating to registration status');
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const RegistrationStatusScreen()),
-    );
+    try {
+      final resp = await http.post(
+        uri,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "firstName": _nameController.text.trim(),
+          "lastName": "", // adjust if you collect last name separately
+          "mobileNumber": "9999999999", // sample/mobile; replace with real value when available
+          "gender": _gender.toLowerCase(),
+          "bio": _bioController.text.trim(),
+          "interests": _selectedInterestIds.isNotEmpty
+              ? _selectedInterestIds.toList()
+              : _interestIds.isNotEmpty
+                  ? _interestIds
+                  : [
+                      "68d4f9dfdd3c0ef9b8ebbf19",
+                      "68d4fac1dd3c0ef9b8ebbf20",
+                    ],
+          "languages": [
+            "68d4fc53dd3c0ef9b8ebbf35",
+          ],
+          "religion": "68d5092b4e1ff23011f7c631",
+          "relationshipGoals": [
+            "68d509d84e1ff23011f7c636",
+          ],
+          "height": "180",
+          "searchPreferences": "both",
+          if (_uploadedPhotoUrl != null && _uploadedPhotoUrl!.isNotEmpty)
+            "images": [_uploadedPhotoUrl],
+        }),
+      );
 
-    // Original API implementation (commented out)
-    // final api = context.read<ApiController>();
+      dynamic body;
+      try {
+        body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
+      } catch (_) {
+        body = {"raw": resp.body};
+      }
 
-    // // Map selections to backend IDs
-    // final interestIds = _selectedInterestLabels
-    //     .map((label) => _interestLabelToId[label])
-    //     .whereType<String>()
-    //     .toList();
-    // // TODO: replace with uploaded URL
-    // final String? photoUrl = _photo?.path;
+      if (!mounted) return;
 
-    // final int age = int.parse(_ageController.text.trim());
+      if (body is Map && body["success"] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Profile updated successfully!')),
+        );
 
-    // final ok = await api.updateProfileDetails(
-    //   name: _nameController.text.trim(),
-    //   age: age,
-    //   gender: _gender.toLowerCase(),
-    //   bio: _bioController.text.trim(),
-    //   interestIds: interestIds,
-    //   photoUrl: photoUrl,
-    // );
-
-    // if (!mounted) return;
-
-    // if (ok) {
-    //   // Navigate to status screen on success
-    //   Navigator.pushReplacement(
-    //     context,
-    //     MaterialPageRoute(builder: (_) => const RegistrationStatusScreen()),
-    //   );
-    // } else {
-    //   final err = api.error ?? 'Profile update failed';
-    //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
-    // }
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const RegistrationStatusScreen()),
+        );
+      } else {
+        final msg = (body is Map ? (body["message"] ?? body["error"]) : null) ??
+            "Profile update failed";
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ $msg')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Error updating profile: ${e.toString()}')),
+      );
+    }
   }
 
   @override
@@ -182,19 +295,14 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
                   children: [
                     const SizedBox(height: 16),
 
-                    // Photo
+                    // Photo (circular avatar)
                     GestureDetector(
                       onTap: _pickImage,
                       child: _photo == null
                           ? const _DottedBorderBox(label: 'Upload photo')
-                          : ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.file(
-                                _photo!,
-                                width: 120,
-                                height: 120,
-                                fit: BoxFit.cover,
-                              ),
+                          : CircleAvatar(
+                              radius: 60,
+                              backgroundImage: FileImage(_photo!),
                             ),
                     ),
                     const SizedBox(height: 24),
@@ -245,19 +353,42 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
                         _genderOption('Female', Icons.female),
                       ],
                     ),
+                    const SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Interests', style: _labelStyle()),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _interestIdToTitle.entries
+                            .map(
+                              (entry) => FilterChip(
+                                label: Text(entry.value),
+                                selected: _selectedInterestIds.contains(entry.key),
+                                onSelected: (selected) {
+                                  setState(() {
+                                    if (selected) {
+                                      _selectedInterestIds.add(entry.key);
+                                    } else {
+                                      _selectedInterestIds.remove(entry.key);
+                                    }
+                                  });
+                                },
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
                     const SizedBox(height: 30),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: GradientButton(
                         text: isLoading ? 'Saving...' : 'Submit',
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AccountScreen(),
-                            ),
-                          );
-                        },
+                        onPressed: _onApprovePressed,
                         buttonText: '',
                       ),
                     ),
