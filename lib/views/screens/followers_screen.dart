@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+import '../../api_service/api_endpoint.dart';
 
 class MyFollowersScreen extends StatefulWidget {
   const MyFollowersScreen({super.key});
@@ -9,24 +13,248 @@ class MyFollowersScreen extends StatefulWidget {
 
 class _MyFollowersScreenState extends State<MyFollowersScreen> {
   bool isOnline = true;
-  bool showFollowers = true;
+  int _tabIndex = 0; // 0 = followers, 1 = following, 2 = favourites
 
-  final List<Map<String, dynamic>> followers = List.generate(7, (_) {
-    return {
-      'username': 'User12332',
-      'age': 25,
-      'gender': '♂',
-      'level': '01',
-      'online': true,
-      'avatarUrl': 'https://via.placeholder.com/150',
-    };
-  });
+  List<Map<String, dynamic>> _followers = [];
+  List<Map<String, dynamic>> _following = [];
+
+  Set<String> _favourites = <String>{};
+  bool _loading = false;
+  String? _error;
 
   final Gradient appGradient = const LinearGradient(
     colors: [Color(0xFFFF00CC), Color(0xFF9A00F0)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchFollowers();
+    _fetchFavourites();
+  }
+
+  String? _extractId(dynamic item) {
+    if (item == null) return null;
+    if (item is Map<String, dynamic>) {
+      return (item["id"] ?? item["_id"] ?? "").toString();
+    }
+    return item.toString();
+  }
+
+  Future<void> _fetchFollowers() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final url = Uri.parse(
+        "${ApiEndPoints.baseUrls}${ApiEndPoints.maleFollowers}",
+      );
+      final resp = await http.get(url);
+
+      dynamic body;
+      try {
+        body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
+      } catch (_) {
+        body = {"raw": resp.body};
+      }
+
+      List<dynamic> dataList = [];
+      if (body is Map && body["data"] is List) {
+        dataList = body["data"] as List<dynamic>;
+      } else if (body is List) {
+        dataList = body;
+      }
+
+      final mapped = dataList
+          .whereType<Map<String, dynamic>>()
+          .map<Map<String, dynamic>>((item) {
+        final username = (item["username"] ?? item["name"] ?? "User")
+            .toString();
+        final age = int.tryParse((item["age"] ?? "0").toString()) ?? 0;
+        final gender = (item["gender"] ?? "").toString();
+        final level = (item["level"] ?? "01").toString();
+        final online = item["online"] == true || item["isOnline"] == true;
+        final avatarUrl =
+            (item["avatar"] ?? item["avatarUrl"] ?? item["photo"] ?? "")
+                .toString();
+        final id = (item["id"] ?? item["_id"] ?? "").toString();
+
+        return {
+          "id": id,
+          "username": username,
+          "age": age,
+          "gender": gender,
+          "level": level,
+          "online": online,
+          "avatarUrl": avatarUrl,
+        };
+      }).toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        _followers = mapped;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.toString();
+      });
+    }
+  }
+
+  Future<void> _fetchFavourites() async {
+    try {
+      final url = Uri.parse(
+        "${ApiEndPoints.baseUrls}${ApiEndPoints.maleListFavourites}",
+      );
+      final resp = await http.get(url);
+
+      dynamic body;
+      try {
+        body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
+      } catch (_) {
+        body = {"raw": resp.body};
+      }
+
+      List<dynamic> dataList = [];
+      if (body is Map && body["data"] is List) {
+        dataList = body["data"] as List<dynamic>;
+      } else if (body is List) {
+        dataList = body;
+      }
+
+      final favIds = <String>{};
+      for (final item in dataList) {
+        final id = _extractId(item);
+        if (id != null && id.isNotEmpty) {
+          favIds.add(id);
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _favourites = favIds;
+      });
+    } catch (_) {
+      // silent failure for favourites list
+    }
+  }
+
+  Future<void> _addFavourite(String userId) async {
+    if (userId.isEmpty) return;
+    try {
+      final url = Uri.parse(
+        "${ApiEndPoints.baseUrls}${ApiEndPoints.maleAddFavourite}",
+      );
+      await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"userId": userId}),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _favourites.add(userId);
+      });
+    } catch (_) {
+      // you can add snackbar/logging here if needed
+    }
+  }
+
+  Future<void> _removeFavourite(String userId) async {
+    if (userId.isEmpty) return;
+    try {
+      final url = Uri.parse(
+        "${ApiEndPoints.baseUrls}${ApiEndPoints.maleRemoveFavourite}",
+      );
+      await http.delete(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"userId": userId}),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _favourites.remove(userId);
+      });
+    } catch (_) {
+      // you can add snackbar/logging here if needed
+    }
+  }
+
+  Future<void> _fetchFollowing() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final url = Uri.parse(
+        "${ApiEndPoints.baseUrls}${ApiEndPoints.maleFollowing}",
+      );
+      final resp = await http.get(url);
+
+      dynamic body;
+      try {
+        body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
+      } catch (_) {
+        body = {"raw": resp.body};
+      }
+
+      List<dynamic> dataList = [];
+      if (body is Map && body["data"] is List) {
+        dataList = body["data"] as List<dynamic>;
+      } else if (body is List) {
+        dataList = body;
+      }
+
+      final mapped = dataList
+          .whereType<Map<String, dynamic>>()
+          .map<Map<String, dynamic>>((item) {
+        final username = (item["username"] ?? item["name"] ?? "User")
+            .toString();
+        final age = int.tryParse((item["age"] ?? "0").toString()) ?? 0;
+        final gender = (item["gender"] ?? "").toString();
+        final level = (item["level"] ?? "01").toString();
+        final online = item["online"] == true || item["isOnline"] == true;
+        final avatarUrl =
+            (item["avatar"] ?? item["avatarUrl"] ?? item["photo"] ?? "")
+                .toString();
+        final id = (item["id"] ?? item["_id"] ?? "").toString();
+
+        return {
+          "id": id,
+          "username": username,
+          "age": age,
+          "gender": gender,
+          "level": level,
+          "online": online,
+          "avatarUrl": avatarUrl,
+        };
+      }).toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        _following = mapped;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.toString();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,72 +291,181 @@ class _MyFollowersScreenState extends State<MyFollowersScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _gradientToggleButton("My Followers", showFollowers, () {
-                setState(() => showFollowers = true);
+              _gradientToggleButton("My Followers", _tabIndex == 0, () {
+                if (_tabIndex != 0) {
+                  setState(() => _tabIndex = 0);
+                  if (_followers.isEmpty) {
+                    _fetchFollowers();
+                  }
+                }
               }),
               const SizedBox(width: 10),
-              _gradientToggleButton("My Following", !showFollowers, () {
-                setState(() => showFollowers = false);
+              _gradientToggleButton("My Following", _tabIndex == 1, () {
+                if (_tabIndex != 1) {
+                  setState(() => _tabIndex = 1);
+                  if (_following.isEmpty) {
+                    _fetchFollowing();
+                  }
+                }
+              }),
+              const SizedBox(width: 10),
+              _gradientToggleButton("My Favourites", _tabIndex == 2, () {
+                if (_tabIndex != 2) {
+                  setState(() => _tabIndex = 2);
+                  if (_favourites.isEmpty) {
+                    _fetchFavourites();
+                  }
+                }
               }),
             ],
           ),
           const SizedBox(height: 10),
           // List
           Expanded(
-            child: ListView.builder(
-              itemCount: followers.length,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemBuilder: (_, index) {
-                final user = followers[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundImage: NetworkImage(user['avatarUrl']),
-                        radius: 30,
-                      ),
-                      const SizedBox(width: 10),
-                      // Details
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  user['username'],
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                _gradientLevelBadge(user['level']),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Text("${user['gender']} ${user['age']}"),
-                                const SizedBox(width: 8),
-                                if (user['online'])
-                                  const Text(
-                                    "• Online",
-                                    style: TextStyle(
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.w500,
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? Center(child: Text(_error!))
+                    : Builder(
+                        builder: (context) {
+                          List<Map<String, dynamic>> list;
+                          String emptyMessage;
+
+                          if (_tabIndex == 0) {
+                            list = _followers;
+                            emptyMessage = "No followers found.";
+                          } else if (_tabIndex == 1) {
+                            list = _following;
+                            emptyMessage = "No following users found.";
+                          } else {
+                            // Favourites tab: merge followers + following filtered by favourite IDs
+                            final merged = <Map<String, dynamic>>[];
+                            final seen = <String>{};
+
+                            for (final u in _followers) {
+                              final id = (u['id'] ?? '').toString();
+                              if (_favourites.contains(id) && !seen.contains(id)) {
+                                merged.add(u);
+                                seen.add(id);
+                              }
+                            }
+
+                            for (final u in _following) {
+                              final id = (u['id'] ?? '').toString();
+                              if (_favourites.contains(id) && !seen.contains(id)) {
+                                merged.add(u);
+                                seen.add(id);
+                              }
+                            }
+
+                            list = merged;
+                            emptyMessage = "No favourites found.";
+                          }
+
+                          if (list.isEmpty) {
+                            return Center(child: Text(emptyMessage));
+                          }
+
+                          return ListView.builder(
+                            itemCount: list.length,
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16),
+                            itemBuilder: (_, index) {
+                              final user = list[index];
+                              final avatar = (user['avatarUrl'] ?? '')
+                                  .toString()
+                                  .trim();
+
+                              ImageProvider avatarProvider;
+                              if (avatar.isNotEmpty) {
+                                avatarProvider = NetworkImage(avatar);
+                              } else {
+                                avatarProvider = const AssetImage(
+                                  'assets/male_avatar.png',
+                                );
+                              }
+
+                              final id = (user['id'] ?? '').toString();
+                              final isFav = _favourites.contains(id);
+
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundImage: avatarProvider,
+                                      radius: 30,
                                     ),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
+                                    const SizedBox(width: 10),
+                                    // Details
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(
+                                                (user['username'] ?? 'User')
+                                                    .toString(),
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              _gradientLevelBadge(
+                                                (user['level'] ?? '01')
+                                                    .toString(),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                "${(user['gender'] ?? '').toString()} ${(user['age'] ?? '').toString()}",
+                                              ),
+                                              const SizedBox(width: 8),
+                                              if (user['online'] == true)
+                                                const Text(
+                                                  "• Online",
+                                                  style: TextStyle(
+                                                    color: Colors.green,
+                                                    fontWeight:
+                                                        FontWeight.w500,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(
+                                        isFav
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        color:
+                                            isFav ? Colors.red : Colors.grey,
+                                      ),
+                                      onPressed: id.isEmpty
+                                          ? null
+                                          : () {
+                                              if (isFav) {
+                                                _removeFavourite(id);
+                                              } else {
+                                                _addFavourite(id);
+                                              }
+                                            },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
           ),
         ],
       ),
