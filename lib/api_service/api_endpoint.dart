@@ -1,22 +1,23 @@
 class ApiEndPoints {
   static const String baseUrls = "https://friend-circle-nine.vercel.app";
+
+  // Male auth & profile
   static const String signupMale = "/male-user/register";
   static const String verifyOtpMale = "/male-user/verify-otp";
   static const String loginMale = "/male-user/login";
   static const String loginotpMale = "/male-user/verify-login-otp";
   static const String profiledetailsMale = "/male-user/add-info";
+  static const String maleProfileDetails = "/male-user/profile/details";
+  static const String uploadImageMale = "/male-user/upload-image";
+  static const String maleMe = "/male-user/me";
+  static const String maleInterests = "/male-user/interests";
 
   // Male follow/unfollow
-  static const String maleFollow = "/male-user/follow";
   static const String maleUnfollow = "/male-user/unfollow";
   static const String maleFollowing = "/male-user/following";
   static const String maleFollowers = "/male-user/followers";
 
-  // Male favourites
-  static const String maleAddFavourite = "/male-user/favourites/add-favourites";
-  static const String maleListFavourites = "/male-user/favourites/list-favourites";
-  static const String maleRemoveFavourite = "/male-user/favourites/remove-favourites";
-
+  // Female auth & profile
   static const String signup = "/female-user/register";
   static const String verifyOtp = "/female-user/verify-otp";
   static const String login = "/female-user/login";

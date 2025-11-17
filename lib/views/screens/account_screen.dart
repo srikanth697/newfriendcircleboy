@@ -4,6 +4,8 @@ import 'package:Boy_flow/views/screens/TransactionsScreen.dart';
 import 'package:Boy_flow/views/screens/introduce_yourself_screen.dart';
 import 'package:Boy_flow/views/screens/profile_gallery_screen.dart';
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../../widgets/bottom_nav.dart';
 
 // Screens
@@ -13,6 +15,7 @@ import '../screens/followers_screen.dart';
 import '../screens/earnings_screen.dart';
 import '../screens/support_service_screen.dart';
 import '../screens/settings_screen.dart';
+import '../../api_service/api_endpoint.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -24,6 +27,15 @@ class AccountScreen extends StatefulWidget {
 class _AccountScreenState extends State<AccountScreen> {
   bool isOnline = false;
   bool isFollowing = false; // <-- added
+
+  String? _firstName;
+  String? _lastName;
+  int? _age;
+  String? _bio;
+  String? _gender;
+  String? _height;
+  String? _profileImageUrl;
+  bool _loadingProfile = false;
 
   final List<Map<String, dynamic>> menuItems = [
     {
@@ -69,6 +81,74 @@ class _AccountScreenState extends State<AccountScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _fetchMaleUserMe();
+  }
+
+  Future<void> _fetchMaleUserMe() async {
+    setState(() {
+      _loadingProfile = true;
+    });
+
+    try {
+      final url = Uri.parse(
+        "${ApiEndPoints.baseUrls}${ApiEndPoints.maleMe}",
+      );
+
+      final resp = await http.get(url);
+
+      dynamic body;
+      try {
+        body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
+      } catch (_) {
+        body = {"raw": resp.body};
+      }
+
+      if (!mounted) return;
+
+      if (body is Map && body["success"] == true && body["data"] is Map) {
+        final data = body["data"] as Map<String, dynamic>;
+
+        final dobStr = data["dateOfBirth"]?.toString();
+        int? age;
+        if (dobStr != null) {
+          final dob = DateTime.tryParse(dobStr);
+          if (dob != null) {
+            final now = DateTime.now();
+            age = now.year - dob.year -
+                ((now.month < dob.month ||
+                        (now.month == dob.month && now.day < dob.day))
+                    ? 1
+                    : 0);
+          }
+        }
+
+        setState(() {
+          _firstName = data["firstName"]?.toString();
+          _lastName = data["lastName"]?.toString();
+          _bio = data["bio"]?.toString();
+          _gender = data["gender"]?.toString();
+          _height = data["height"]?.toString();
+          _age = age;
+          final images = data["images"];
+          if (images is List && images.isNotEmpty) {
+            _profileImageUrl = images.first.toString();
+          }
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingProfile = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -83,7 +163,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
               Spacer(),
-               Row(
+              Row(
                 children: [
                   Image.asset("assets/coins.png", width: 22, height: 22),
                   const SizedBox(width: 4),
@@ -137,9 +217,11 @@ class _AccountScreenState extends State<AccountScreen> {
                     // Avatar
                     CircleAvatar(
                       radius: 50,
-                      backgroundImage: NetworkImage(
-                        'https://i.pravatar.cc/150?img=5',
-                      ),
+                      backgroundImage: _profileImageUrl != null
+                          ? NetworkImage(_profileImageUrl!)
+                          : const NetworkImage(
+                              'https://i.pravatar.cc/150?img=5',
+                            ),
                     ),
                     const SizedBox(width: 16),
                     // Info column
@@ -166,11 +248,13 @@ class _AccountScreenState extends State<AccountScreen> {
                                       end: Alignment.centerRight,
                                     ).createShader(bounds),
                                     blendMode: BlendMode.srcIn,
-                                    child: const Text(
-                                      "Shophie92",
+                                    child: Text(
+                                      _firstName != null
+                                          ? "${_firstName!} ${_lastName ?? ''}".trim()
+                                          : "Shophie92",
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 18,
                                         color: Colors.white, // required by ShaderMask
@@ -231,7 +315,9 @@ class _AccountScreenState extends State<AccountScreen> {
                             ),
 
                             const SizedBox(height: 6),
-                            const Text("Age: 22 years"),
+                            Text(
+                              _age != null ? "Age: $_age years" : "Age: 22 years",
+                            ),
                             const SizedBox(height: 10),
                             const Text(
                               "India",
