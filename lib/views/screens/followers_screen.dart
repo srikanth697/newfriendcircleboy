@@ -112,7 +112,7 @@ class _MyFollowersScreenState extends State<MyFollowersScreen> {
   Future<void> _fetchFavourites() async {
     try {
       final url = Uri.parse(
-        "${ApiEndPoints.baseUrls}${ApiEndPoints.maleListFavourites}",
+        "${ApiEndPoints.baseUrls}${ApiEndPoints.maleMe}",
       );
       final resp = await http.get(url);
 
@@ -123,18 +123,18 @@ class _MyFollowersScreenState extends State<MyFollowersScreen> {
         body = {"raw": resp.body};
       }
 
-      List<dynamic> dataList = [];
-      if (body is Map && body["data"] is List) {
-        dataList = body["data"] as List<dynamic>;
-      } else if (body is List) {
-        dataList = body;
-      }
-
       final favIds = <String>{};
-      for (final item in dataList) {
-        final id = _extractId(item);
-        if (id != null && id.isNotEmpty) {
-          favIds.add(id);
+      if (body is Map && body["data"] is Map) {
+        final data = body["data"] as Map;
+        final favourites = data["favourites"];
+
+        if (favourites is List) {
+          for (final item in favourites) {
+            final id = _extractId(item);
+            if (id != null && id.isNotEmpty) {
+              favIds.add(id);
+            }
+          }
         }
       }
 

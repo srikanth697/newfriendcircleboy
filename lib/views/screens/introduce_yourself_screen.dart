@@ -61,6 +61,11 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
   Map<String, String> _interestIdToTitle = {};
   final Set<String> _selectedInterestIds = {};
 
+  // Languages fetched from /male-user/languages
+  List<String> _languageIds = [];
+  Map<String, String> _languageIdToTitle = {};
+  final Set<String> _selectedLanguageIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -71,6 +76,8 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
     _gender = 'Female';
 
     _fetchMaleInterests();
+    _fetchMaleLanguages();
+    _fetchCurrentMaleProfile();
   }
 
   @override
@@ -87,6 +94,108 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
     if (picked != null) {
       setState(() => _photo = File(picked.path));
       await _uploadProfileImage(_photo!);
+    }
+  }
+
+  Future<void> _fetchCurrentMaleProfile() async {
+    try {
+      final url = Uri.parse(
+        "${ApiEndPoints.baseUrls}${ApiEndPoints.maleMe}",
+      );
+
+      final resp = await http.get(url);
+
+      dynamic body;
+      try {
+        body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
+      } catch (_) {
+        body = {"raw": resp.body};
+      }
+
+      if (!mounted) return;
+
+      if (body is Map && body["success"] == true && body["data"] is Map) {
+        final data = body["data"] as Map;
+
+        final firstName = (data["firstName"] ?? "").toString();
+        final lastName = (data["lastName"] ?? "").toString();
+        final bio = (data["bio"] ?? "").toString();
+        final gender = (data["gender"] ?? "").toString();
+        final height = (data["height"] ?? "").toString();
+        final images = data["images"];
+        final interests = data["interests"];
+
+        setState(() {
+          if (firstName.isNotEmpty || lastName.isNotEmpty) {
+            _nameController.text =
+                [firstName, lastName].where((e) => e.isNotEmpty).join(' ');
+          }
+
+          if (height.isNotEmpty) {
+            _ageController.text = height;
+          }
+
+          if (bio.isNotEmpty) {
+            _bioController.text = bio;
+          }
+
+          if (gender.toLowerCase() == 'male') {
+            _gender = 'Male';
+          } else if (gender.toLowerCase() == 'female') {
+            _gender = 'Female';
+          }
+
+          if (images is List && images.isNotEmpty) {
+            _uploadedPhotoUrl = images.first.toString();
+          }
+
+          if (interests is List) {
+            _selectedInterestIds
+              ..clear()
+              ..addAll(interests.map((e) => e.toString()));
+          }
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+    }
+  }
+
+  Future<void> _fetchMaleLanguages() async {
+    try {
+      final url = Uri.parse(
+        "${ApiEndPoints.baseUrls}${ApiEndPoints.maleLanguages}",
+      );
+
+      final resp = await http.get(url);
+
+      dynamic body;
+      try {
+        body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
+      } catch (_) {
+        body = {"raw": resp.body};
+      }
+
+      if (!mounted) return;
+
+      if (body is Map && body["success"] == true && body["data"] is List) {
+        final list = body["data"] as List;
+        setState(() {
+          _languageIds = [];
+          _languageIdToTitle.clear();
+
+          for (final e in list) {
+            if (e is Map && e["_id"] != null) {
+              final id = e["_id"].toString();
+              final title = (e["title"] ?? e["name"] ?? id).toString();
+              _languageIds.add(id);
+              _languageIdToTitle[id] = title;
+            }
+          }
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
     }
   }
 
@@ -199,9 +308,13 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
                       "68d4f9dfdd3c0ef9b8ebbf19",
                       "68d4fac1dd3c0ef9b8ebbf20",
                     ],
-          "languages": [
-            "68d4fc53dd3c0ef9b8ebbf35",
-          ],
+          "languages": _selectedLanguageIds.isNotEmpty
+              ? _selectedLanguageIds.toList()
+              : _languageIds.isNotEmpty
+                  ? _languageIds
+                  : [
+                      "68d4fc53dd3c0ef9b8ebbf35",
+                    ],
           "religion": "68d5092b4e1ff23011f7c631",
           "relationshipGoals": [
             "68d509d84e1ff23011f7c636",
@@ -298,12 +411,21 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
                     // Photo (circular avatar)
                     GestureDetector(
                       onTap: _pickImage,
-                      child: _photo == null
-                          ? const _DottedBorderBox(label: 'Upload photo')
-                          : CircleAvatar(
+                      child: _photo != null
+                          ? CircleAvatar(
                               radius: 60,
                               backgroundImage: FileImage(_photo!),
-                            ),
+                            )
+                          : (_uploadedPhotoUrl != null &&
+                                  _uploadedPhotoUrl!.isNotEmpty
+                              ? CircleAvatar(
+                                  radius: 60,
+                                  backgroundImage:
+                                      NetworkImage(_uploadedPhotoUrl!),
+                                )
+                              : const _DottedBorderBox(
+                                  label: 'Upload photo',
+                                )),
                     ),
                     const SizedBox(height: 24),
                     Align(
