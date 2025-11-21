@@ -1,52 +1,73 @@
-// import 'dart:convert';
-// import 'package:flutter/material.dart';
-// import 'package:http/http.dart' as http;
-// import 'api_endpoint.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'api_endpoint.dart';
 
-// class ApiService {
-//   final String _baseUrl = ApiEndPoints.baseUrls;
-//   final Duration _timeout = const Duration(seconds: 20);
+class ApiService {
+  final String _baseUrl = ApiEndPoints.baseUrls;
+  final Duration _timeout = const Duration(seconds: 20);
 
-//   /// Generic JSON POST. Always returns a Map with `_status`.
-//   Future<Map<String, dynamic>> postData(
-//     String endpoint,
-//     Map<String, dynamic> data,
-//   ) async {
-//     final url = Uri.parse("$_baseUrl$endpoint");
+  Future<Map<String, dynamic>> postData(
+    String endpoint,
+    Map<String, dynamic> data,
+  ) async {
+    final url = Uri.parse("$_baseUrl$endpoint");
 
-//     try {
-//       debugPrint("📤 POST to $url with body: ${jsonEncode(data)}");
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: {"Content-Type": "application/json"},
+            body: jsonEncode(data),
+          )
+          .timeout(_timeout);
 
-//       final response = await http
-//           .post(
-//             url,
-//             headers: {"Content-Type": "application/json"},
-//             body: jsonEncode(data),
-//           )
-//           .timeout(_timeout);
+      dynamic parsedBody;
+      try {
+        parsedBody =
+            response.body.isNotEmpty ? jsonDecode(response.body) : {};
+      } catch (_) {
+        parsedBody = {"raw": response.body};
+      }
 
-//       debugPrint("📥 Response ${response.statusCode}: ${response.body}");
+      final Map<String, dynamic> result = <String, dynamic>{
+        "_status": response.statusCode,
+      };
 
-//       dynamic parsedBody;
-//       try {
-//         parsedBody = response.body.isNotEmpty ? jsonDecode(response.body) : {};
-//       } catch (_) {
-//         parsedBody = {"raw": response.body};
-//       }
+      if (parsedBody is Map<String, dynamic>) {
+        result.addAll(parsedBody);
+      } else {
+        result["data"] = parsedBody;
+      }
 
-//       final Map<String, dynamic> result = <String, dynamic>{
-//         "_status": response.statusCode,
-//       };
+      return result;
+    } catch (e) {
+      throw Exception("POST request error: $e");
+    }
+  }
 
-//       if (parsedBody is Map<String, dynamic>) {
-//         result.addAll(parsedBody);
-//       } else {
-//         result["data"] = parsedBody;
-//       }
+  Future<List<Map<String, dynamic>>> fetchBrowseFemales({
+    int page = 1,
+    int limit = 10,
+  }) async {
+    final uri = Uri.parse(
+      '$_baseUrl${ApiEndPoints.maleBrowseFemales}?page=$page&limit=$limit',
+    );
 
-//       return result;
-//     } catch (e) {
-//       throw Exception("POST request error: $e");
-//     }
-//   }
-// }
+    final headers = <String, String>{
+      'Accept': 'application/json',
+    };
+
+    final response = await http.get(uri, headers: headers).timeout(_timeout);
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load females: ${response.statusCode}');
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is Map<String, dynamic> && decoded['data'] is List) {
+      return (decoded['data'] as List).cast<Map<String, dynamic>>();
+    }
+
+    return const [];
+  }
+}
