@@ -16,6 +16,13 @@ class ApiEndPoints {
   static const String maleUnfollow = "/male-user/unfollow";
   static const String maleFollowing = "/male-user/following";
   static const String maleFollowers = "/male-user/followers";
+  static const String maleListFavourites = "/male-user/favourites";
+  static const String maleAddFavourite = "/male-user/favourites/add";
+  static const String maleRemoveFavourite = "/male-user/favourites/remove";
+
+  // Male block/unblock
+  static const String maleBlockList = "/male-user/block-list";
+  static const String maleUnblock = "/male-user/unblock";
 
   // Female auth & profile
   static const String signup = "/female-user/register";
