@@ -1,7 +1,12 @@
 // lib/views/screens/mainhome.dart
 import 'package:Boy_flow/views/screens/profile_gallery_screen.dart';
 import 'package:Boy_flow/widgets/bottom_nav.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../models/user.dart' as call_user;
+import '../../models/call_state.dart';
+import '../../services/call_manager.dart';
+import 'call_page.dart';
 
 class mainhome extends StatefulWidget {
   const mainhome({super.key});
@@ -13,6 +18,7 @@ class mainhome extends StatefulWidget {
 class _HomeScreenState extends State<mainhome> {
   // current filter: 'All', 'Follow', 'Near By', 'New'
   String _filter = 'All';
+  final CallManager _callManager = CallManager();
 
   void _showQuickSheet() {
     showModalBottomSheet(
@@ -71,6 +77,80 @@ class _HomeScreenState extends State<mainhome> {
       return profiles.where((p) => p['New'] == true).toList();
     }
     return profiles;
+  }
+
+  Future<void> _startCall({
+    required bool isVideo,
+    required Map<String, dynamic> profile,
+  }) async {
+    if (kIsWeb) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Calls are only available on mobile/desktop builds.'),
+        ),
+      );
+      return;
+    }
+
+    final user = call_user.User(
+      id: profile['name'] as String,
+      name: profile['name'] as String,
+      isOnline: true,
+    );
+
+    final type = isVideo ? CallType.video : CallType.audio;
+
+    try {
+      await _callManager.initiateCall(user, type);
+      final callInfo = _callManager.currentCall;
+      if (!mounted || callInfo == null) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CallPage(
+            channelName: callInfo.channelName,
+            enableVideo: callInfo.type == CallType.video,
+            isInitiator: true,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to start call: $e')),
+      );
+    }
+  }
+
+  Future<void> _showCallTypePopup(Map<String, dynamic> profile) async {
+    final type = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.call),
+                title: const Text('Audio Call'),
+                onTap: () => Navigator.pop(ctx, false),
+              ),
+              ListTile(
+                leading: const Icon(Icons.videocam),
+                title: const Text('Video Call'),
+                onTap: () => Navigator.pop(ctx, true),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (type != null) {
+      await _startCall(isVideo: type, profile: profile);
+    }
   }
 
   @override
@@ -204,13 +284,13 @@ class _HomeScreenState extends State<mainhome> {
                 callRate: profile['callRate'] as String,
                 videoRate: profile['videoRate'] as String,
                 onCardTap: () {
-                  // full screen navigation
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ProfileGalleryScreen(),
-                    ),
-                  );
+                  _showCallTypePopup(profile);
+                },
+                onAudioCallTap: () {
+                  _startCall(isVideo: false, profile: profile);
+                },
+                onVideoCallTap: () {
+                  _startCall(isVideo: true, profile: profile);
                 },
               ),
             );
@@ -439,6 +519,8 @@ class ProfileCardWidget extends StatelessWidget {
   final String imagePath;
   final String badgeImagePath;
   final VoidCallback? onCardTap;
+  final VoidCallback? onAudioCallTap;
+  final VoidCallback? onVideoCallTap;
 
   const ProfileCardWidget({
     required this.name,
@@ -449,6 +531,8 @@ class ProfileCardWidget extends StatelessWidget {
     required this.imagePath,
     required this.badgeImagePath,
     this.onCardTap,
+    this.onAudioCallTap,
+    this.onVideoCallTap,
     super.key,
   });
 
@@ -553,11 +637,13 @@ class ProfileCardWidget extends StatelessWidget {
                               icon: Icons.call,
                               label: callRate,
                               iconColor: Colors.white,
+                              onTap: onAudioCallTap,
                             ),
                             _RatePill(
                               icon: Icons.videocam,
                               label: videoRate,
                               iconColor: Colors.white,
+                              onTap: onVideoCallTap,
                             ),
                           ],
                         ),
@@ -602,40 +688,45 @@ class _RatePill extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color iconColor;
+  final VoidCallback? onTap;
 
   const _RatePill({
     required this.icon,
     required this.label,
     this.iconColor = Colors.white,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.0),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white, width: 1.2),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.only(left: 6, right: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: iconColor, size: 20),
-            const SizedBox(width: 8),
-            Image.asset("assets/coins.png", width: 18, height: 18),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.0),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white, width: 1.2),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.only(left: 6, right: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: iconColor, size: 20),
+              const SizedBox(width: 8),
+              Image.asset("assets/coins.png", width: 18, height: 18),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

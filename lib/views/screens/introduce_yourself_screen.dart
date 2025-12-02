@@ -61,16 +61,17 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
   Map<String, String> _interestIdToTitle = {};
   final Set<String> _selectedInterestIds = {};
 
+  // Languages fetched from /male-user/languages
+  List<String> _languageIds = [];
+  Map<String, String> _languageIdToTitle = {};
+  final Set<String> _selectedLanguageIds = {};
+
   @override
   void initState() {
     super.initState();
-    // Prefill example values matching the sample response
-    _nameController.text = 'oliva Doe';
-    _ageController.text = '30';
-    _bioController.text = 'This is my bio';
-    _gender = 'Female';
-
     _fetchMaleInterests();
+    _fetchMaleLanguages();
+    _fetchCurrentMaleProfile();
   }
 
   @override
@@ -87,6 +88,121 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
     if (picked != null) {
       setState(() => _photo = File(picked.path));
       await _uploadProfileImage(_photo!);
+    }
+  }
+
+  Future<void> _fetchCurrentMaleProfile() async {
+    try {
+      final url = Uri.parse(
+        "${ApiEndPoints.baseUrls}${ApiEndPoints.maleMe}",
+      );
+
+      final resp = await http.get(url);
+
+      dynamic body;
+      try {
+        body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
+      } catch (_) {
+        body = {"raw": resp.body};
+      }
+
+      if (!mounted) return;
+
+      if (body is Map && body["success"] == true && body["data"] is Map) {
+        final data = body["data"] as Map;
+
+        final firstName = (data["firstName"] ?? "").toString();
+        final lastName = (data["lastName"] ?? "").toString();
+        final bio = (data["bio"] ?? "").toString();
+        final gender = (data["gender"] ?? "").toString();
+        final dobStr = (data["dateOfBirth"] ?? "").toString();
+        final height = (data["height"] ?? "").toString();
+        final images = data["images"];
+        final interests = data["interests"];
+
+        setState(() {
+          if (firstName.isNotEmpty || lastName.isNotEmpty) {
+            _nameController.text =
+                [firstName, lastName].where((e) => e.isNotEmpty).join(' ');
+          }
+
+          // Convert dateOfBirth to an age number for the Age field.
+          if (dobStr.isNotEmpty) {
+            final dob = DateTime.tryParse(dobStr);
+            if (dob != null) {
+              final now = DateTime.now();
+              final years = now.year - dob.year -
+                  ((now.month < dob.month ||
+                          (now.month == dob.month && now.day < dob.day))
+                      ? 1
+                      : 0);
+              if (years > 0) {
+                _ageController.text = years.toString();
+              }
+            }
+          }
+
+          if (bio.isNotEmpty) {
+            _bioController.text = bio;
+          }
+
+          if (gender.toLowerCase() == 'male') {
+            _gender = 'Male';
+          } else if (gender.toLowerCase() == 'female') {
+            _gender = 'Female';
+          }
+
+          if (images is List && images.isNotEmpty) {
+            _uploadedPhotoUrl = images.first.toString();
+          }
+
+          if (interests is List) {
+            _selectedInterestIds
+              ..clear()
+              ..addAll(interests.map((e) => e.toString()));
+          }
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+    }
+  }
+
+  Future<void> _fetchMaleLanguages() async {
+    try {
+      final url = Uri.parse(
+        "${ApiEndPoints.baseUrls}${ApiEndPoints.maleLanguages}",
+      );
+
+      final resp = await http.get(url);
+
+      dynamic body;
+      try {
+        body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
+      } catch (_) {
+        body = {"raw": resp.body};
+      }
+
+      if (!mounted) return;
+
+      if (body is Map && body["success"] == true && body["data"] is List) {
+        final list = body["data"] as List;
+        setState(() {
+          _languageIds = [];
+          _languageIdToTitle.clear();
+
+          for (final e in list) {
+            if (e is Map && e["_id"] != null) {
+              final id = e["_id"].toString();
+              final title = (e["title"] ?? e["name"] ?? id).toString();
+              _languageIds.add(id);
+              _languageIdToTitle[id] = title;
+            }
+          }
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
     }
   }
 
@@ -181,27 +297,49 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
       "${ApiEndPoints.baseUrls}${ApiEndPoints.maleProfileDetails}",
     );
 
+    // Split full name into firstName / lastName to better match backend shape.
+    final fullName = _nameController.text.trim();
+    final nameParts = fullName.split(' ').where((e) => e.isNotEmpty).toList();
+    final firstName = nameParts.isNotEmpty ? nameParts.first : fullName;
+    final lastName = nameParts.length > 1
+        ? nameParts.sublist(1).join(' ')
+        : "";
+
+    // Derive a simple dateOfBirth from the numeric age entered.
+    // We approximate as Jan 1 of (currentYear - age) so backend gets a DOB.
+    String? dateOfBirth;
+    final ageText = _ageController.text.trim();
+    final age = int.tryParse(ageText);
+    if (age != null && age > 0) {
+      final now = DateTime.now();
+      final approxDob = DateTime(now.year - age, 1, 1);
+      dateOfBirth = approxDob.toIso8601String().split('T').first;
+    }
+
     try {
-      final resp = await http.post(
+      // Build interests and languages, falling back to full lists if nothing selected.
+      final interests = _selectedInterestIds.isNotEmpty
+          ? _selectedInterestIds.toList()
+          : _interestIds;
+      final languages = _selectedLanguageIds.isNotEmpty
+          ? _selectedLanguageIds.toList()
+          : _languageIds;
+
+      final resp = await http.patch(
         uri,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "firstName": _nameController.text.trim(),
-          "lastName": "", // adjust if you collect last name separately
-          "mobileNumber": "9999999999", // sample/mobile; replace with real value when available
+          "firstName": firstName,
+          "lastName": lastName,
+          // NOTE: mobileNumber is still a placeholder until you wire real value.
+          "mobileNumber": "9999999999",
+          if (dateOfBirth != null) "dateOfBirth": dateOfBirth,
           "gender": _gender.toLowerCase(),
           "bio": _bioController.text.trim(),
-          "interests": _selectedInterestIds.isNotEmpty
-              ? _selectedInterestIds.toList()
-              : _interestIds.isNotEmpty
-                  ? _interestIds
-                  : [
-                      "68d4f9dfdd3c0ef9b8ebbf19",
-                      "68d4fac1dd3c0ef9b8ebbf20",
-                    ],
-          "languages": [
-            "68d4fc53dd3c0ef9b8ebbf35",
-          ],
+          "interests": interests,
+          "languages": languages,
+          // Keep these fixed IDs to match your backend sample until you expose
+          // them in the UI.
           "religion": "68d5092b4e1ff23011f7c631",
           "relationshipGoals": [
             "68d509d84e1ff23011f7c636",
@@ -226,11 +364,9 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('✅ Profile updated successfully!')),
         );
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const RegistrationStatusScreen()),
-        );
+        // Go back to the previous screen (e.g., AccountScreen).
+        // AccountScreen awaits this and then refreshes /male-user/me.
+        Navigator.pop(context, true);
       } else {
         final msg = (body is Map ? (body["message"] ?? body["error"]) : null) ??
             "Profile update failed";
@@ -298,12 +434,21 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
                     // Photo (circular avatar)
                     GestureDetector(
                       onTap: _pickImage,
-                      child: _photo == null
-                          ? const _DottedBorderBox(label: 'Upload photo')
-                          : CircleAvatar(
+                      child: _photo != null
+                          ? CircleAvatar(
                               radius: 60,
                               backgroundImage: FileImage(_photo!),
-                            ),
+                            )
+                          : (_uploadedPhotoUrl != null &&
+                                  _uploadedPhotoUrl!.isNotEmpty
+                              ? CircleAvatar(
+                                  radius: 60,
+                                  backgroundImage:
+                                      NetworkImage(_uploadedPhotoUrl!),
+                                )
+                              : const _DottedBorderBox(
+                                  label: 'Upload photo',
+                                )),
                     ),
                     const SizedBox(height: 24),
                     Align(

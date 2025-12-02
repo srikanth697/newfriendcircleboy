@@ -11,16 +11,14 @@ class ApiEndPoints {
   static const String uploadImageMale = "/male-user/upload-image";
   static const String maleMe = "/male-user/me";
   static const String maleInterests = "/male-user/interests";
+  static const String maleLanguages = "/male-user/languages";
 
   // Male follow/unfollow
   static const String maleUnfollow = "/male-user/unfollow";
   static const String maleFollowing = "/male-user/following";
   static const String maleFollowers = "/male-user/followers";
-  static const String maleListFavourites = "/male-user/favourites";
-  static const String maleAddFavourite = "/male-user/favourites/add";
-  static const String maleRemoveFavourite = "/male-user/favourites/remove";
-
-  // Male block/unblock
+  static const String maleAddFavourite = "/male-user/add-favourite";
+  static const String maleRemoveFavourite = "/male-user/remove-favourite";
   static const String maleBlockList = "/male-user/block-list";
   static const String maleUnblock = "/male-user/unblock";
 
