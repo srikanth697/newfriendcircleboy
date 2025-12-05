@@ -79,15 +79,17 @@ class _LoginScreenState extends State<LoginScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text("✅ $message")));
 
-        Navigator.pushNamed(
-          context,
-          AppRoutes.loginVerification, // → OTP screen
-          arguments: {
-            'email': email,
-            'source': 'login',
-            if (body is Map && body['otp'] != null) 'otp': body['otp'],
-          },
-        );
+        if (mounted) {
+          Navigator.pushNamed(
+            context,
+            AppRoutes.loginVerification,
+            arguments: <String, dynamic>{
+              'email': email,
+              'source': 'login',
+              if (body is Map && body['otp'] != null) 'otp': body['otp'].toString(),
+            },
+          );
+        }
       } else {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text("❌ $message")));

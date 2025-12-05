@@ -1,11 +1,9 @@
 import 'package:Boy_flow/views/screens/earnings_screen.dart';
 import 'package:Boy_flow/views/screens/mainhome.dart';
 import 'package:flutter/material.dart';
-// import 'package:provider/provider.dart';
 import '../../core/routes/app_routes.dart';
 import '../../utils/colors.dart';
 import '../../widgets/gradient_button.dart';
-// import '../../controllers/api_controller.dart';
 import '../../widgets/otp_input_fields.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -25,23 +23,66 @@ class _LoginVerificationScreenState extends State<LoginVerificationScreen> {
   String? _source; // "login" or "signup"
   String _otp = "";
   bool _submitting = false;
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeFromArguments();
+    });
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    _email = (args?['email'] as String?)?.trim();
-    _mobile = (args?['mobile'] as String?)?.trim();
-    _source = (args?['source'] as String?)?.trim().toLowerCase() ?? "login";
+    if (!_isInitialized) {
+      _initializeFromArguments();
+    }
+  }
+
+  void _initializeFromArguments() {
+    if (_isInitialized) return;
+    
+    try {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      
+      if (args == null) {
+        debugPrint('⚠️ No arguments provided to LoginVerificationScreen');
+        Navigator.of(context).pop();
+        return;
+      }
+      
+      if (args is Map<String, dynamic>) {
+        setState(() {
+          _email = (args['email'] as String?)?.trim();
+          _mobile = (args['mobile'] as String?)?.trim();
+          _source = (args['source'] as String?)?.trim().toLowerCase() ?? 'login';
+          _isInitialized = true;
+        });
+        
+        if (_email == null && _mobile == null) {
+          debugPrint('⚠️ Neither email nor mobile provided to LoginVerificationScreen');
+          Navigator.of(context).pop();
+        }
+      } else {
+        debugPrint('⚠️ Invalid arguments type: ${args.runtimeType}');
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      debugPrint('❌ Error initializing LoginVerificationScreen: $e');
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    }
   }
 
   Future<void> _verifyOtp() async {
     final otp = _otp.trim();
     if (otp.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please enter the OTP')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter the OTP')),
+      );
       return;
     }
 
@@ -89,13 +130,11 @@ class _LoginVerificationScreenState extends State<LoginVerificationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('✅ $message')),
         );
-        final nextRoute = (_source == 'login')
-            ? AppRoutes.home
-            : AppRoutes.introduceYourself;
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          nextRoute,
-          (_) => false,
+        
+        // Navigate to home screen and clear the navigation stack
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          AppRoutes.home,
+          (route) => false,
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -144,10 +183,8 @@ class _LoginVerificationScreenState extends State<LoginVerificationScreen> {
             child: IntrinsicHeight(
               child: Column(
                 children: [
-                  // (keep existing UI below exactly as in your file)
+                  // Your existing UI components here
                   // ...
-                  // The rest of your original layout code goes here unchanged
-                  // up to the end of the class.
                 ],
               ),
             ),
