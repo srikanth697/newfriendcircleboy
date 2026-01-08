@@ -9,12 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
-// import 'package:provider/provider.dart';
+import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import '../../widgets/gradient_button.dart';
 // Removed unused import: registration_status.dart
 import '../../api_service/api_endpoint.dart';
-// import '../../controllers/api_controller.dart'; // <- make sure the path is correct in your project
+import '../../controllers/api_controller.dart'; // <- make sure the path is correct in your project
 // import '../../api_service/api_endpoint.dart'; // only used for constants in comments
 
 // Helper to save token after login
@@ -72,7 +72,9 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _ageController = TextEditingController();
+  final _heightController = TextEditingController();
 
   String _gender = 'Male'; // default to match sample payload
 
@@ -88,7 +90,9 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
   void dispose() {
     _videoController?.dispose();
     _firstNameController.dispose();
+    _lastNameController.dispose();
     _ageController.dispose();
+    _heightController.dispose();
     super.dispose();
   }
 
@@ -119,13 +123,16 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
       if (body is Map && body["success"] == true && body["data"] is Map) {
         final data = body["data"] as Map;
         final firstName = (data["firstName"] ?? "").toString();
+        final lastName = (data["lastName"] ?? "").toString();
         final gender = (data["gender"] ?? "").toString();
         final dobStr = (data["dateOfBirth"] ?? "").toString();
+        final height = (data["height"] ?? "").toString();
         final images = data["images"];
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           setState(() {
             _firstNameController.text = firstName;
+            _lastNameController.text = lastName;
             if (dobStr.isNotEmpty) {
               final dob = DateTime.tryParse(dobStr);
               if (dob != null) {
@@ -142,6 +149,7 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
                 }
               }
             }
+            _heightController.text = height;
             if (gender.toLowerCase() == 'male') {
               _gender = 'Male';
             } else if (gender.toLowerCase() == 'female') {
@@ -170,73 +178,62 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
       );
       return;
     }
-    final uri = Uri.parse(
-      "${ApiEndPoints.baseUrls}${ApiEndPoints.maleProfileDetails}",
-    );
 
     final firstName = _firstNameController.text.trim();
-    String? dateOfBirth;
-    final ageText = _ageController.text.trim();
-    final age = int.tryParse(ageText);
-    if (age != null && age > 0) {
-      final now = DateTime.now();
-      final approxDob = DateTime(now.year - age, 1, 1);
-      dateOfBirth = approxDob.toIso8601String().split('T').first;
+    final lastName = _lastNameController.text.trim();
+    final height = _heightController.text.trim();
+
+    // Validate required fields
+    if (firstName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ First name is required.')),
+      );
+      return;
+    }
+    if (lastName.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('❌ Last name is required.')));
+      return;
+    }
+    if (height.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('❌ Height is required.')));
+      return;
     }
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      String? token =
-          prefs.getString('token') ?? prefs.getString('access_token') ?? '';
-      if (token.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Login required. Token missing.')),
-        );
-        return;
-      }
+      // Use the ApiController via Provider to update profile
+      final apiController = Provider.of<ApiController>(context, listen: false);
 
-      final resp = await http.patch(
-        uri,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
-        body: jsonEncode({
-          "firstName": firstName,
-          if (dateOfBirth != null) "dateOfBirth": dateOfBirth,
-          "gender": _gender.toLowerCase(),
-          if (_uploadedPhotoUrl != null && _uploadedPhotoUrl!.isNotEmpty)
-            "images": [_uploadedPhotoUrl],
-        }),
+      final result = await apiController.updateProfileDetails(
+        firstName: firstName,
+        lastName: lastName,
+        height: height,
+        religion:
+            "694f63d08389fc82a4345083", // Using example religion ID from your API spec
       );
-
-      dynamic body;
-      try {
-        body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
-      } catch (_) {
-        body = {"raw": resp.body};
-      }
 
       if (!mounted) return;
 
-      if (body is Map && body["success"] == true) {
+      if (result["success"] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('✅ Profile updated successfully!')),
         );
         Navigator.pop(context, true); // Return true to indicate update
       } else {
-        final msg =
-            (body is Map ? (body["message"] ?? body["error"]) : null) ??
-            "Profile update failed";
+        // API returned success=false or unexpected format
+        final msg = result["message"] ?? "Profile update failed";
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('❌ $msg')));
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ Error updating profile: \\${e.toString()}')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('❌ Profile update failed: $e')));
     }
   }
 
@@ -324,19 +321,32 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
                     const SizedBox(height: 16),
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: Text('Age', style: _labelStyle()),
+                      child: Text('Last Name', style: _labelStyle()),
                     ),
                     const SizedBox(height: 6),
                     _buildRoundedTextField(
-                      controller: _ageController,
-                      hint: '30',
+                      controller: _lastNameController,
+                      hint: 'Enter your last name',
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Last name is required'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Height (cm)', style: _labelStyle()),
+                    ),
+                    const SizedBox(height: 6),
+                    _buildRoundedTextField(
+                      controller: _heightController,
+                      hint: '182',
                       keyboardType: TextInputType.number,
                       validator: (v) {
                         if (v == null || v.trim().isEmpty)
-                          return 'Age is required';
+                          return 'Height is required';
                         final n = int.tryParse(v.trim());
-                        if (n == null || n < 18 || n > 99)
-                          return 'Enter a valid age (18-99)';
+                        if (n == null || n < 100 || n > 250)
+                          return 'Enter a valid height (100-250 cm)';
                         return null;
                       },
                     ),

@@ -4,6 +4,7 @@ class FemaleUser {
   final int age;
   final String bio;
   final String? avatarUrl;
+  final String? email;
 
   FemaleUser({
     required this.id,
@@ -11,6 +12,7 @@ class FemaleUser {
     required this.age,
     required this.bio,
     this.avatarUrl,
+    this.email,
   });
 
   factory FemaleUser.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class FemaleUser {
       age: json['age'] ?? 0,
       bio: json['bio'] ?? '',
       avatarUrl: json['avatarUrl'],
+      email: json['email'] ?? null,
     );
   }
 }

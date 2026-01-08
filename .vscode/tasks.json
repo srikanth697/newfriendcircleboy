@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Flutter build APK (release, arm64-v8a only, minified)",
+			"type": "shell",
+			"command": "flutter build apk --release --target-platform=android-arm64",
+			"args": [],
+			"problemMatcher": [
+				"$flutter"
+			],
+			"group": "build"
+		}
+	]
+}

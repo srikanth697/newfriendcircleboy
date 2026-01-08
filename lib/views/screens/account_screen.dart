@@ -373,6 +373,8 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Future<void> _fetchMaleUserMe() async {
+    if (!mounted) return;
+
     setState(() {
       _loadingProfile = true;
     });
@@ -441,6 +443,8 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Future<void> _fetchMaleInterests() async {
+    if (!mounted) return;
+
     try {
       final url = Uri.parse(
         "${ApiEndPoints.baseUrls}${ApiEndPoints.maleInterests}",

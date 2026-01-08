@@ -88,8 +88,10 @@ class _HomeScreenState extends State<MainHome> {
   @override
   void initState() {
     super.initState();
-    _loadProfiles();
-    _loadSentFollowRequests();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProfiles();
+      _loadSentFollowRequests();
+    });
   }
 
   Future<void> _loadSentFollowRequests() async {
@@ -187,33 +189,7 @@ class _HomeScreenState extends State<MainHome> {
     }
   }
 
-  Future<void> _showCallTypePopup(Map<String, dynamic> profile) async {
-    final type = await showModalBottomSheet<bool>(
-      context: context,
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.call),
-                title: const Text('Audio Call'),
-                onTap: () => Navigator.pop(ctx, false),
-              ),
-              ListTile(
-                leading: const Icon(Icons.videocam),
-                title: const Text('Video Call'),
-                onTap: () => Navigator.pop(ctx, true),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-    if (type != null) {
-      await _startCall(isVideo: type, profile: profile);
-    }
-  }
+  // ...existing code...
 
   void _showQuickSheet() {
     showModalBottomSheet(
@@ -355,7 +331,12 @@ class _HomeScreenState extends State<MainHome> {
                     const SizedBox(height: 8),
                     ...apiController.sentFollowRequests.map((req) {
                       final female = req['femaleUserId'] ?? {};
-                      final name = female['email'] ?? 'Unknown';
+                      // Fallback: Try name, then email, then ''
+                      final name = (female != null)
+                          ? (female['name']?.toString() ??
+                                female['email']?.toString() ??
+                                'Unknown')
+                          : 'Unknown';
                       final status = req['status'] ?? 'pending';
                       return Container(
                         margin: const EdgeInsets.only(bottom: 6),

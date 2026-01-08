@@ -76,7 +76,7 @@ class _MyCallRateState extends State<MyCallRate> {
 
   @override
   Widget build(BuildContext context) {
-    const Color pink1 = Color(0xFFFF4081);
+    // ...existing code...
     const Color pink2 = Color(0xFF9C27B0);
     const Color yellow = Color(0xFFF4C200); // pay section
     const double cardRadius = 12.0;
