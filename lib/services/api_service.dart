@@ -265,6 +265,9 @@ class ApiService {
     String? lastName,
     String? height,
     String? religion,
+    String? imageUrl,
+    String? bio,
+    String? gender,
   }) async {
     try {
       final url = Uri.parse('$baseUrl/male-user/profile-details');
@@ -274,6 +277,9 @@ class ApiService {
       if (lastName != null) body['lastName'] = lastName;
       if (height != null) body['height'] = height;
       if (religion != null) body['religion'] = religion;
+      if (imageUrl != null) body['images'] = [imageUrl];
+      if (bio != null) body['bio'] = bio;
+      if (gender != null) body['gender'] = gender;
 
       final response = await http.patch(
         url,

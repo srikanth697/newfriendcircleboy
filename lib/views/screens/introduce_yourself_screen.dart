@@ -75,6 +75,19 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
   final _lastNameController = TextEditingController();
   final _ageController = TextEditingController();
   final _heightController = TextEditingController();
+  final _religionController = TextEditingController();
+  String? _selectedReligionId;
+
+  // Sample religion options - in a real app, you'd fetch these from an API
+  final List<Map<String, String>> _religions = [
+    {'id': '694f63d08389fc82a4345083', 'name': 'Hindu'},
+    {'id': '694f63d08389fc82a4345084', 'name': 'Muslim'},
+    {'id': '694f63d08389fc82a4345085', 'name': 'Christian'},
+    {'id': '694f63d08389fc82a4345086', 'name': 'Sikh'},
+    {'id': '694f63d08389fc82a4345087', 'name': 'Buddhist'},
+    {'id': '694f63d08389fc82a4345088', 'name': 'Jewish'},
+    {'id': '694f63d08389fc82a4345089', 'name': 'Other'},
+  ];
 
   String _gender = 'Male'; // default to match sample payload
 
@@ -93,6 +106,7 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
     _lastNameController.dispose();
     _ageController.dispose();
     _heightController.dispose();
+    _religionController.dispose();
     super.dispose();
   }
 
@@ -111,23 +125,41 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
 
   Future<void> _fetchCurrentMaleProfile() async {
     try {
-      final url = Uri.parse("${ApiEndPoints.baseUrls}${ApiEndPoints.maleMe}");
-      final resp = await http.get(url);
-      dynamic body;
-      try {
-        body = resp.body.isNotEmpty ? jsonDecode(resp.body) : {};
-      } catch (_) {
-        body = {"raw": resp.body};
-      }
+      // Use the ApiController via Provider to fetch profile
+      final apiController = Provider.of<ApiController>(context, listen: false);
+      final result = await apiController.fetchCurrentMaleProfile();
+
       if (!mounted) return;
-      if (body is Map && body["success"] == true && body["data"] is Map) {
-        final data = body["data"] as Map;
+      if (result["success"] == true && result["data"] is Map) {
+        final data = result["data"] as Map;
         final firstName = (data["firstName"] ?? "").toString();
         final lastName = (data["lastName"] ?? "").toString();
         final gender = (data["gender"] ?? "").toString();
         final dobStr = (data["dateOfBirth"] ?? "").toString();
         final height = (data["height"] ?? "").toString();
+        final religion = (data["religion"] ?? "").toString();
+
+        // Set the selected religion ID based on the loaded data
+        String? selectedReligionId = religion.isNotEmpty ? religion : null;
+
+        // Handle images array from the new API response structure
+        List<String> imageUrls = [];
         final images = data["images"];
+        if (images is List) {
+          if (images.isNotEmpty) {
+            // The new API returns objects with imageUrl property
+            if (images.first is Map) {
+              final firstImage = images.first as Map;
+              if (firstImage.containsKey('imageUrl')) {
+                imageUrls.add(firstImage['imageUrl'].toString());
+              }
+            } else {
+              // If it's a simple array of strings
+              imageUrls = images.cast<String>();
+            }
+          }
+        }
+
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           setState(() {
@@ -150,19 +182,24 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
               }
             }
             _heightController.text = height;
+            _religionController.text = religion;
+            _selectedReligionId = selectedReligionId;
             if (gender.toLowerCase() == 'male') {
               _gender = 'Male';
             } else if (gender.toLowerCase() == 'female') {
               _gender = 'Female';
             }
-            if (images is List && images.isNotEmpty) {
-              _uploadedPhotoUrl = images.first.toString();
+            if (imageUrls.isNotEmpty) {
+              _uploadedPhotoUrl = imageUrls.first;
             }
           });
         });
       }
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('❌ Error fetching profile: $e')));
     }
   }
 
@@ -182,6 +219,7 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
     final firstName = _firstNameController.text.trim();
     final lastName = _lastNameController.text.trim();
     final height = _heightController.text.trim();
+    final religion = _selectedReligionId ?? _religionController.text.trim();
 
     // Validate required fields
     if (firstName.isEmpty) {
@@ -202,6 +240,12 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
       ).showSnackBar(const SnackBar(content: Text('❌ Height is required.')));
       return;
     }
+    if (religion.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('❌ Religion is required.')));
+      return;
+    }
 
     try {
       // Use the ApiController via Provider to update profile
@@ -211,8 +255,8 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
         firstName: firstName,
         lastName: lastName,
         height: height,
-        religion:
-            "694f63d08389fc82a4345083", // Using example religion ID from your API spec
+        religion: religion, // Using religion from the form
+        imageUrl: _uploadedPhotoUrl, // Include image URL in the update
       );
 
       if (!mounted) return;
@@ -349,6 +393,45 @@ class _IntroduceYourselfScreenState extends State<IntroduceYourselfScreen> {
                           return 'Enter a valid height (100-250 cm)';
                         return null;
                       },
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Religion', style: _labelStyle()),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF9E6F5),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value:
+                              _selectedReligionId != null &&
+                                  _religions.any(
+                                    (r) => r['id'] == _selectedReligionId,
+                                  )
+                              ? _selectedReligionId
+                              : null,
+                          isExpanded: true,
+                          hint: const Text('Select a religion'),
+                          items: _religions.map((religion) {
+                            return DropdownMenuItem(
+                              value: religion['id'],
+                              child: Text(religion['name']!),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              _selectedReligionId = newValue;
+                              // Clear the text controller when selecting from dropdown
+                              _religionController.text = newValue ?? '';
+                            });
+                          },
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Align(

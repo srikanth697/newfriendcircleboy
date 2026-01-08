@@ -43,6 +43,8 @@ class Profiledetails {
   final String? name;
   final String? videoUrl;
   final List<dynamic> images;
+  final String? height;
+  final dynamic religion;
 
   const Profiledetails({
     this.id,
@@ -89,6 +91,8 @@ class Profiledetails {
     this.name,
     this.videoUrl,
     this.images = const [],
+    this.height,
+    this.religion,
   });
 
   factory Profiledetails.fromJson(Map<String, dynamic> json) {
@@ -193,6 +197,8 @@ class Profiledetails {
       images: (json["images"] is List)
           ? List<dynamic>.from(json["images"])
           : const [],
+      height: json["height"]?.toString(),
+      religion: json["religion"],
     );
   }
 
@@ -242,6 +248,8 @@ class Profiledetails {
       "name": name,
       "videoUrl": videoUrl,
       "images": images,
+      "height": height,
+      "religion": religion,
     };
   }
 
