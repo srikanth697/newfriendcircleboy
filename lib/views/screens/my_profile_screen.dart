@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart'; // Import provider for state management
+import '../../core/routes/app_routes.dart'; // Import app routes
+// ...existing code...
 import '../../models/profiledetails.dart';
 import '../../controllers/api_controller.dart'; // Use the API controller instead
 
@@ -16,31 +16,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   Profiledetails? _user;
   bool _isLoading = true;
   String? _error;
-
-  // Controllers for form fields
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
-  final _ageController = TextEditingController();
-  final _heightController = TextEditingController();
-  final _religionController = TextEditingController();
-  final _bioController = TextEditingController();
-  String? _selectedReligionId;
-
-  // Sample religion options - in a real app, you'd fetch these from an API
-  final List<Map<String, String>> _religions = [
-    {'id': '694f63d08389fc82a4345083', 'name': 'Hindu'},
-    {'id': '694f63d08389fc82a4345084', 'name': 'Muslim'},
-    {'id': '694f63d08389fc82a4345085', 'name': 'Christian'},
-    {'id': '694f63d08389fc82a4345086', 'name': 'Sikh'},
-    {'id': '694f63d08389fc82a4345087', 'name': 'Buddhist'},
-    {'id': '694f63d08389fc82a4345088', 'name': 'Jewish'},
-    {'id': '694f63d08389fc82a4345089', 'name': 'Other'},
-  ];
-
-  String _gender = 'Male'; // default to match sample payload
-  String? _uploadedPhotoUrl;
-  File? _selectedImage;
-  bool _isEditing = false; // Track if we're in editing mode
 
   @override
   void initState() {
@@ -118,44 +93,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   return "";
                 }).toList()
               : [],
-          "height": data["height"],
-          "religion": data["religion"],
         };
 
         setState(() {
           _user = Profiledetails.fromJson(userData);
-
-          // Populate form fields with profile data
-          _firstNameController.text = _user?.firstName ?? '';
-          _lastNameController.text = _user?.lastName ?? '';
-          _ageController.text = _user?.age?.toString() ?? '';
-          _heightController.text = _user?.height ?? '';
-          _bioController.text = _user?.bio ?? '';
-          _gender = _user?.gender?.toString() ?? 'Male';
-
-          // Set the selected religion ID based on the loaded data
-          String? selectedReligionId = _user?.religion?.toString() ?? null;
-          _selectedReligionId = selectedReligionId;
-
-          // Handle images array from the new API response structure
-          List<String> imageUrls = [];
-          final images = _user?.images;
-          if (images != null && images.isNotEmpty) {
-            // The API returns objects with imageUrl property
-            if (images.first is Map) {
-              final firstImage = images.first as Map;
-              if (firstImage.containsKey('imageUrl')) {
-                imageUrls.add(firstImage['imageUrl'].toString());
-              }
-            } else {
-              // If it's a simple array of strings
-              imageUrls = images.cast<String>();
-            }
-          }
-          if (imageUrls.isNotEmpty) {
-            _uploadedPhotoUrl = imageUrls.first;
-          }
-
           _isLoading = false;
         });
       } else {
@@ -169,85 +110,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         _error = 'Error loading profile: $e';
         _isLoading = false;
       });
-    }
-  }
-
-  Future<void> _saveProfile() async {
-    final firstName = _firstNameController.text.trim();
-    final lastName = _lastNameController.text.trim();
-    final height = _heightController.text.trim();
-    final religion = _selectedReligionId ?? _religionController.text.trim();
-    final bio = _bioController.text.trim();
-
-    // Validate required fields
-    if (firstName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ First name is required.')),
-      );
-      return;
-    }
-    if (lastName.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('❌ Last name is required.')));
-      return;
-    }
-    if (height.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('❌ Height is required.')));
-      return;
-    }
-    if (religion.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('❌ Religion is required.')));
-      return;
-    }
-
-    try {
-      setState(() {
-        _isLoading = true;
-      });
-
-      final apiController = Provider.of<ApiController>(context, listen: false);
-      final result = await apiController.updateProfileDetails(
-        firstName: firstName,
-        lastName: lastName,
-        height: height,
-        religion: religion,
-        imageUrl: _uploadedPhotoUrl,
-        bio: bio,
-        gender: _gender,
-      );
-
-      if (result['success'] == true) {
-        // Reload profile after successful update
-        await _fetchUserProfile();
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Profile updated successfully!')),
-        );
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Failed to update profile: ${result['message']}'),
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ Error updating profile: $e')));
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
   }
 
@@ -287,15 +149,15 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 onSelected: (value) async {
                   if (value == 0) {
                     // Edit Profile
-                    setState(() {
-                      _isEditing = true;
-                    });
-                  } else if (value == 3) {
-                    // Save Profile
-                    await _saveProfile();
-                    setState(() {
-                      _isEditing = false;
-                    });
+                    // Navigate to introduce yourself screen for editing
+                    final updated = await Navigator.pushNamed(
+                      context,
+                      AppRoutes.introduceYourself,
+                    );
+                    if (updated == true) {
+                      // Refresh profile data after returning from edit
+                      await _fetchUserProfile();
+                    }
                   } else if (value == 1) {
                     // Settings
                     // Navigate to settings
@@ -305,15 +167,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   }
                 },
                 itemBuilder: (context) => [
-                  _isEditing
-                      ? const PopupMenuItem(
-                          value: 3,
-                          child: Text("Save Profile"),
-                        )
-                      : const PopupMenuItem(
-                          value: 0,
-                          child: Text("Edit Profile"),
-                        ),
+                  const PopupMenuItem(value: 0, child: Text("Edit Profile")),
                   const PopupMenuItem(value: 1, child: Text("Settings")),
                   const PopupMenuItem(value: 2, child: Text("Logout")),
                 ],
@@ -349,7 +203,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile header - Always show with edit capability
+            // Profile header
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -363,355 +217,105 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   ),
                 ],
               ),
-              child: Column(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CircleAvatar(
-                        radius: 40,
-                        backgroundImage:
-                            (_uploadedPhotoUrl != null &&
-                                _uploadedPhotoUrl!.isNotEmpty)
-                            ? NetworkImage(_uploadedPhotoUrl!)
-                            : (_user?.images.isNotEmpty ?? false) &&
-                                  ((_user?.images.first.toString() ?? '')
-                                      .isNotEmpty)
-                            ? NetworkImage(_user!.images.first.toString())
-                            : null,
-                        child:
-                            (_uploadedPhotoUrl == null ||
-                                        _uploadedPhotoUrl!.isEmpty) &&
-                                    !(_user?.images.isNotEmpty ?? false) ||
-                                ((_user?.images.first.toString() ?? '').isEmpty)
-                            ? const Icon(
-                                Icons.person,
-                                size: 40,
-                                color: Colors.grey,
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (!_isEditing) ...[
-                                ShaderMask(
-                                  shaderCallback: (bounds) =>
-                                      const LinearGradient(
-                                        colors: [
-                                          Color(0xFFFF55A5),
-                                          Color(0xFF9A00F0),
-                                        ],
-                                      ).createShader(bounds),
-                                  blendMode: BlendMode.srcIn,
-                                  child: Text(
-                                    '${_user?.name ?? "No Name"}',
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ] else ...[
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF9E6F5),
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                        ),
-                                        child: TextField(
-                                          controller: _firstNameController,
-                                          decoration: const InputDecoration(
-                                            hintText: 'First Name',
-                                            border: InputBorder.none,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF9E6F5),
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                        ),
-                                        child: TextField(
-                                          controller: _lastNameController,
-                                          decoration: const InputDecoration(
-                                            hintText: 'Last Name',
-                                            border: InputBorder.none,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  if (!_isEditing) ...[
-                                    const Text(
-                                      "Age: ",
-                                      style: TextStyle(
-                                        color: Colors.black87,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    Text(
-                                      "${_user?.age ?? 'N/A'} years",
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    const Text(
-                                      "Height: ",
-                                      style: TextStyle(
-                                        color: Colors.black87,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    Text(
-                                      "${_user?.height ?? 'N/A'} cm",
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ] else ...[
-                                    Expanded(
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF9E6F5),
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                        ),
-                                        child: TextField(
-                                          controller: _ageController,
-                                          keyboardType: TextInputType.number,
-                                          readOnly:
-                                              true, // Age calculated from DOB
-                                          decoration: const InputDecoration(
-                                            hintText: 'Age',
-                                            border: InputBorder.none,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF9E6F5),
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                        ),
-                                        child: TextField(
-                                          controller: _heightController,
-                                          keyboardType: TextInputType.number,
-                                          decoration: const InputDecoration(
-                                            hintText: 'Height (cm)',
-                                            border: InputBorder.none,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                  const SizedBox(width: 10),
-                                  const Text(
-                                    "Balance: ",
-                                    style: TextStyle(
-                                      color: Colors.black87,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  Text(
-                                    "${_user?.walletBalance ?? 0}",
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              Row(
-                                children: [
-                                  _buildInfoChip(
-                                    Icons.verified,
-                                    "Verified",
-                                    _user?.isVerified == true,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _buildInfoChip(
-                                    Icons.check_circle,
-                                    "Active",
-                                    _user?.isActive == true,
-                                  ),
-                                ],
-                              ),
-                              if (_isEditing) ...[
-                                const SizedBox(height: 10),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF9E6F5),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: DropdownButtonHideUnderline(
-                                    child: DropdownButton<String>(
-                                      value:
-                                          _selectedReligionId != null &&
-                                              _religions.any(
-                                                (r) =>
-                                                    r['id'] ==
-                                                    _selectedReligionId,
-                                              )
-                                          ? _selectedReligionId
-                                          : null,
-                                      isExpanded: true,
-                                      hint: const Text('Select a religion'),
-                                      items: _religions.map((religion) {
-                                        return DropdownMenuItem(
-                                          value: religion['id'],
-                                          child: Text(religion['name']!),
-                                        );
-                                      }).toList(),
-                                      onChanged: (String? newValue) {
-                                        setState(() {
-                                          _selectedReligionId = newValue;
-                                          // Clear the text controller when selecting from dropdown
-                                          _religionController.text =
-                                              newValue ?? '';
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Text('Gender', style: _labelStyle()),
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    _genderOption('Male', Icons.male),
-                                    const SizedBox(width: 15),
-                                    _genderOption('Female', Icons.female),
-                                  ],
-                                ),
-                              ] else if (_user?.religion != null) ...[
-                                const SizedBox(height: 10),
-                                _buildInfoChip(
-                                  Icons.church,
-                                  _findReligionNameById(
-                                        _user?.religion.toString(),
-                                      ) ??
-                                      'Religion',
-                                  true,
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundImage:
+                        (_user?.images.isNotEmpty ?? false) &&
+                            ((_user?.images.first.toString() ?? '').isNotEmpty)
+                        ? NetworkImage(_user!.images.first.toString())
+                        : null,
+                    child:
+                        !(_user?.images.isNotEmpty ?? false) ||
+                            ((_user?.images.first.toString() ?? '').isEmpty)
+                        ? const Icon(Icons.person, size: 40, color: Colors.grey)
+                        : null,
                   ),
-                  if (_isEditing) ...[
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () async {
-                              final pickedFile = await _pickImage();
-                              if (pickedFile != null) {
-                                setState(() {
-                                  _selectedImage = pickedFile;
-                                  _uploadedPhotoUrl = pickedFile.path;
-                                });
-                              }
-                            },
-                            child: const Text('Upload Photo'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        if (_uploadedPhotoUrl != null) ...[
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _selectedImage = null;
-                                  _uploadedPhotoUrl = null;
-                                });
-                              },
-                              child: const Text('Remove'),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ShaderMask(
+                            shaderCallback: (bounds) => const LinearGradient(
+                              colors: [Color(0xFFFF55A5), Color(0xFF9A00F0)],
+                            ).createShader(bounds),
+                            blendMode: BlendMode.srcIn,
+                            child: Text(
+                              '${_user?.name ?? "No Name"}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Text(
+                                "Age: ",
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                "${_user?.age ?? 'N/A'} years",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const Text(
+                                "Balance: ",
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                "${_user?.walletBalance ?? 0}",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              _buildInfoChip(
+                                Icons.verified,
+                                "Verified",
+                                _user?.isVerified == true,
+                              ),
+                              const SizedBox(width: 8),
+                              _buildInfoChip(
+                                Icons.check_circle,
+                                "Active",
+                                _user?.isActive == true,
+                              ),
+                            ],
+                          ),
                         ],
-                      ],
+                      ),
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
 
             // Sections for profile details
-            if (_isEditing) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF9E6F5),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: TextField(
-                  controller: _bioController,
-                  maxLines: 4,
-                  decoration: const InputDecoration(
-                    hintText: 'Tell us about yourself...',
-                    border: InputBorder.none,
-                    alignLabelWithHint: true,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ] else ...[
-              _buildSection("Bio", _user?.bio ?? "No bio available"),
-            ],
+            _buildSection("Bio", _user?.bio ?? "No bio available"),
 
             _buildSectionWithChips(
               "Interests",
@@ -1051,65 +655,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  String? _findReligionNameById(String? id) {
-    if (id == null) return null;
-    final found = _religions.firstWhere(
-      (religion) => religion['id'] == id,
-      orElse: () => {'id': '', 'name': ''},
-    );
-    return found['name'];
-  }
-
-  Future<File?> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      return File(pickedFile.path);
-    }
-    return null;
-  }
-
-  TextStyle _labelStyle() {
-    return const TextStyle(
-      fontWeight: FontWeight.w600,
-      fontSize: 14,
-      color: Colors.black,
-    );
-  }
-
-  Widget _genderOption(String value, IconData icon) {
-    final isSelected = _gender == value;
-    return ChoiceChip(
-      labelPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 16,
-            color: isSelected ? Colors.white : const Color(0xFFE91EC7),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: isSelected ? Colors.white : Colors.black,
-            ),
-          ),
-        ],
-      ),
-      selected: isSelected,
-      selectedColor: const Color(0xFFE91EC7),
-      backgroundColor: const Color(0xFFF5F5F5),
-      shape: const StadiumBorder(),
-      onSelected: (_) {
-        setState(() => _gender = value);
-      },
     );
   }
 }

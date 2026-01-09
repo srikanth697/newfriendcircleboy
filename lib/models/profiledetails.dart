@@ -248,8 +248,6 @@ class Profiledetails {
       "name": name,
       "videoUrl": videoUrl,
       "images": images,
-      "height": height,
-      "religion": religion,
     };
   }
 

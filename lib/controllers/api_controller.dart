@@ -465,8 +465,6 @@ class ApiController extends ChangeNotifier {
     String? height,
     String? religion,
     String? imageUrl,
-    String? bio,
-    String? gender,
   }) async {
     _isLoading = true;
     _error = null;
@@ -485,8 +483,6 @@ class ApiController extends ChangeNotifier {
         height: height,
         religion: religion,
         imageUrl: imageUrl,
-        bio: bio,
-        gender: gender,
       );
       _isLoading = false;
       _updateProfileResponse = result;
